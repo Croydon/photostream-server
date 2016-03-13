@@ -1,8 +1,8 @@
 function Config(){
     return {
         host: 'localhost',
-        user: '***',
-        password: '***',
+        user: 'aschattney',
+        password: 'rmsserver',
         database: 'db_photostream'
     };
 };
