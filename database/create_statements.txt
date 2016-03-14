@@ -1,0 +1,90 @@
+-- MySQL Workbench Forward Engineering
+
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
+
+-- -----------------------------------------------------
+-- Schema db_photostream
+-- -----------------------------------------------------
+DROP SCHEMA IF EXISTS `db_photostream` ;
+
+-- -----------------------------------------------------
+-- Schema db_photostream
+-- -----------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS `db_photostream` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci ;
+USE `db_photostream` ;
+
+-- -----------------------------------------------------
+-- Table `db_photostream`.`photo`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `db_photostream`.`photo` ;
+
+CREATE TABLE IF NOT EXISTS `db_photostream`.`photo` (
+  `photo_id` INT NOT NULL AUTO_INCREMENT,
+  `installation_id` CHAR(36) NOT NULL,
+  `comment` VARCHAR(100) NULL,
+  `image` MEDIUMTEXT CHARACTER SET 'ascii' NULL,
+  PRIMARY KEY (`photo_id`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `db_photostream`.`votes`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `db_photostream`.`votes` ;
+
+CREATE TABLE IF NOT EXISTS `db_photostream`.`votes` (
+  `photo_id` INT NOT NULL,
+  `votecount` INT NULL,
+  PRIMARY KEY (`photo_id`),
+  CONSTRAINT `votes_photo_id`
+    FOREIGN KEY (`photo_id`)
+    REFERENCES `db_photostream`.`photo` (`photo_id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `db_photostream`.`comment`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `db_photostream`.`comment` ;
+
+CREATE TABLE IF NOT EXISTS `db_photostream`.`comment` (
+  `comment_id` INT NOT NULL AUTO_INCREMENT,
+  `photo_id` INT NULL,
+  `installation_id` CHAR(36) NULL,
+  `message` VARCHAR(200) NOT NULL,
+  PRIMARY KEY (`comment_id`),
+  INDEX `comment_photo_id_idx` (`photo_id` ASC),
+  CONSTRAINT `comment_photo_id`
+    FOREIGN KEY (`photo_id`)
+    REFERENCES `db_photostream`.`photo` (`photo_id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `db_photostream`.`installationid_votes`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `db_photostream`.`installationid_votes` ;
+
+CREATE TABLE IF NOT EXISTS `db_photostream`.`installationid_votes` (
+  `installation_id` CHAR(36) NOT NULL,
+  `photo_id` INT NOT NULL,
+  `vote` INT(2) NOT NULL,
+  PRIMARY KEY (`installation_id`, `photo_id`),
+  INDEX `installationid_votes_photo_idx` (`photo_id` ASC),
+  CONSTRAINT `installationid_votes_photo`
+    FOREIGN KEY (`photo_id`)
+    REFERENCES `db_photostream`.`photo` (`photo_id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
