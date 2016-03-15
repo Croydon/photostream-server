@@ -24,64 +24,111 @@
 
 module.exports = function(app, io) {
 
+  var cache = require('memory-cache');
+  const CACHE_TIMEOUT = 3600 * 1000;
+  const STREAM_PREFIX = "stream_";
+  const SEARCH_PREFIX = "search_";
   var express = require('express');
   var db = require('../db');
+
+  function sendErrorIfNAN(value, name, res){
+    if (isNaN(value)){
+      res.status(401).json({ response_code : 401, message: name + ' must be a number but value is: ' + value});
+      return true;
+    }else{
+      return false;
+    }
+  }
 
   /* GET home page. */
   app.get('/', function (req, res, next) {
     res.render('index', {title: 'Express'});
   });
 
-  app.get('/photostream/stream', function (req, res) {
-    var page = req.query.page;
-    if (page == undefined || page == ''){
-      res.status(401).json({ response_code: 401, message: 'missing parameter: page'});
-      return;
-    }
+  app.get('/photostream/stream/more', function(req, res){
     var installationId = req.header('installation_id');
+    doGetPhotos(installationId, undefined, res);
+  });
+
+  app.get('/photostream/stream', function (req, res) {
+    var installationId = req.header('installation_id');
+    doGetPhotos(installationId, 1, res);
+  });
+
+  function doGetPhotos(installationId, page, res){
+
+    if (page !== undefined && page == 1){
+      cache.put(STREAM_PREFIX + installationId, 1, CACHE_TIMEOUT); // Time in ms
+    }else{
+      page = cache.get(STREAM_PREFIX + installationId);
+      if (page == null){
+        res.status(401).json({ response_code: 401, message: 'please use /stream endpoint first'});
+        return;
+      }
+    }
+
     db.openConnection(function (err, connection) {
-      if (err) throw err;
-      db.getPhotos(connection, installationId, page, function (response) {
-        res.json({photos: response, page: page});
-      });
+      if (err)
+        throw err;
+      else{
+        db.getPhotos(connection, installationId, page, function (response) {
+          cache.put(STREAM_PREFIX + installationId, cache.get(STREAM_PREFIX + installationId) + 1, CACHE_TIMEOUT);
+          res.json({photos: response, page: page});
+        });
+      }
     });
+
+  }
+
+  app.get('/photostream/search/more', function(req, res){
+    var installationId = req.header('installation_id');
+    doSearch(installationId, undefined, undefined, res);
   });
 
   app.get('/photostream/search', function(req, res){
-    var query = req.query.q;
-    var page = req.query.page;
-    if (query === undefined || query.trim() == ''){
-      res.status(401).json({ response_code: 401, message: 'missing parameter: q'});
-    }else if (page === undefined || page.trim() == ''){
-      res.status(401).json({ response_code: 401, message: 'missing parameter: page'});
-    }else{
-      var installationId = req.header('installation_id');
-      db.openConnection(function(err, connection){
-        if (err)
-          throw err;
-        else{
-          db.search(connection, installationId, query, page, function(response){
-            res.json({photos: response, page: page});
-          });
-        }
-      });
-    }
-  });
 
-  app.get('/photostream/popular', function (req, res) {
-    var page = req.query.page;
-    if (page == undefined || page == ''){
-      res.status(401).json({ response_code: 401, message: 'missing parameter: page'});
+    var query = req.query.q;
+    var installationId = req.header('installation_id');
+    if (query === undefined || query.trim() == ''){
+      res.status(401).json({ response_code: 401, message: 'missing or invalid parameter: q'});
       return;
     }
-    var installationId = req.header('installation_id');
-    db.openConnection(function (err, connection) {
-      if (err) throw err;
-      db.getPopularPhotos(connection, installationId, page, function (response) {
-        res.json({photos: response, page: page});
-      });
-    });
+
+    doSearch(installationId, query, 1, res);
+
   });
+
+  function doSearch(installationId, query, page, res){
+
+    if (query === undefined){
+      var obj = cache.get(SEARCH_PREFIX + installationId);
+      if (obj == null){
+        res.status(401).json({ response_code: 401, message: 'please use /search endpoint first'});
+        return;
+      }
+      query = obj.query;
+      page = obj.page;
+    }else{
+      var obj = {};
+      obj.query = query;
+      obj.page = page;
+      cache.put(SEARCH_PREFIX + installationId, obj, CACHE_TIMEOUT);
+    }
+
+    db.openConnection(function(err, connection){
+      if (err)
+        throw err;
+      else{
+        db.search(connection, installationId, query, page, function(response){
+          var obj = cache.get(SEARCH_PREFIX + installationId);
+          obj.page = parseInt(obj.page) + 1;
+          cache.put(SEARCH_PREFIX + installationId, obj, CACHE_TIMEOUT);
+          res.json({photos: response, page: page});
+        });
+      }
+    });
+
+  }
 
   app.post('/photostream/image', function (req, res) {
     var installationId = req.header('installation_id');
@@ -115,6 +162,9 @@ module.exports = function(app, io) {
     var installationId = req.header('installation_id');
     var photoId = req.params.id;
 
+    if (sendErrorIfNAN(photoId, 'photo id', res))
+      return;
+
     function invalidPhotoIdCallback(){
       res.status(404).json( { response_code: 404, message: 'invalid photo id' } );
     }
@@ -138,8 +188,13 @@ module.exports = function(app, io) {
   });
 
   app.delete('/photostream/comment/:comment_id', function (req, res) {
+
     var installationId = req.header('installation_id');
     var commentId = req.params.comment_id;
+
+    if (sendErrorIfNAN(commentId, 'comment id', res))
+      return;
+
     db.openConnection(function (err, connection) {
       if (err) {
         throw err;
@@ -157,8 +212,13 @@ module.exports = function(app, io) {
   });
 
   app.delete('/photostream/image/:id', function (req, res) {
+
     var installationId = req.header('installation_id');
     var photoId = req.params.id;
+
+    if (sendErrorIfNAN(commentId, 'comment id', res))
+      return;
+
     db.openConnection(function (err, connection) {
       if (err) {
         throw err;
@@ -189,6 +249,10 @@ module.exports = function(app, io) {
 
     var installation_id = req.header('installation_id');
     var photoId = req.params.id;
+
+    if (sendErrorIfNAN(photoId, 'photo id', res))
+      return;
+
     db.openConnection(function (err, connection) {
       if (err) {
         throw err;
@@ -200,14 +264,10 @@ module.exports = function(app, io) {
     });
   });
 
-  app.put('/photostream/image/:id/upvote', function (req, res) {
+  app.put('/photostream/image/:id/like', function (req, res) {
 
     var installationId = req.header('installation_id');
     var photoId = req.params.id;
-
-    function notAllowedCallback(voteCount) {
-      res.status(200).json({photo_id: photoId, votecount: voteCount, already_voted: true});
-    }
 
     db.openConnection(function (err, connection) {
       if (err)
@@ -215,10 +275,9 @@ module.exports = function(app, io) {
       else{
         db.photoExists(connection, photoId, function(exists){
           if (exists){
-            db.upvotePhoto(connection, installationId, photoId, notAllowedCallback, function (newVoteCount) {
-              var vote = {photo_id: photoId, votecount: newVoteCount};
-              res.json(vote);
-              io.webSocket.emit(installationId, 'new_vote', vote);
+            db.likePhoto(connection, installationId, photoId, function () {
+              var like = {photo_id: photoId, favorite: true};
+              res.json(like);
             });
           }else{
             res.status(404).json( { response_code: 404, message: 'invalid photo id' } );
@@ -228,14 +287,13 @@ module.exports = function(app, io) {
     })
   });
 
-  app.put('/photostream/image/:id/downvote', function (req, res) {
+  app.put('/photostream/image/:id/dislike', function (req, res) {
 
     var installationId = req.header('installation_id');
     var photoId = req.params.id;
 
-    function notAllowedCallback(voteCount) {
-      res.status(200).json({photo_id: photoId, votecount: voteCount, already_voted: true});
-    }
+    if (sendErrorIfNAN(photoId, 'photo id', res))
+      return;
 
     db.openConnection(function (err, connection) {
       if (err)
@@ -243,10 +301,9 @@ module.exports = function(app, io) {
       else{
         db.photoExists(connection, photoId, function(exists) {
           if (exists) {
-            db.downvotePhoto(connection, installationId, photoId, notAllowedCallback, function (newVoteCount) {
-              var vote = {photo_id: photoId, votecount: newVoteCount};
-              res.json(vote);
-              io.webSocket.emit(installationId, 'new_vote', vote);
+            db.dislikePhoto(connection, installationId, photoId, function () {
+              var dislike = {photo_id: photoId, favorite: false};
+              res.json(dislike);
             });
           }else{
             res.status(404).json( { response_code: 404, message: 'invalid photo id' } );
