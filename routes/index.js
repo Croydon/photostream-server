@@ -29,6 +29,7 @@ module.exports = function(app, io) {
   const CACHE_TIMEOUT = 3600 * 1000;
   const STREAM_PREFIX = "stream_";
   const SEARCH_PREFIX = "search_";
+  const MAX_COMMENT_LENGTH = 150;
   var express = require('express');
   var db = require('../db');
 
@@ -42,8 +43,12 @@ module.exports = function(app, io) {
   }
 
   /* GET home page. */
-  app.get('/', function (req, res, next) {
-    res.render('index', {title: 'Express'});
+  app.get('/photostream', function (req, res, next) {
+    res.render('index', { });
+  });
+
+  app.get('/photostream/home', function (req, res, next) {
+    res.render('index', { });
   });
 
   app.get('/photostream/stream/more', function(req, res){
@@ -242,6 +247,13 @@ module.exports = function(app, io) {
     if (sendErrorIfNAN(photoId, 'photo id', res))
       return;
 
+    var comment = req.body;
+
+    if (comment.message.trim().length > MAX_COMMENT_LENGTH){
+      res.status(401).json( { response_code: 500, message: 'comment size of ' + MAX_COMMENT_LENGTH + ' characters exceeded' } );
+      return;
+    }
+
     function invalidPhotoIdCallback(){
       res.status(404).json( { response_code: 404, message: 'invalid photo id' } );
     }
@@ -250,7 +262,6 @@ module.exports = function(app, io) {
       if (err) {
         throw err;
       } else {
-        var comment = req.body;
         db.storeComment(connection, photoId, installationId, comment, invalidPhotoIdCallback, function (comment) {
           if (comment !== undefined){
             res.status(200).json(comment);

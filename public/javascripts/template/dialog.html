@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<md-dialog class="custom-dialog" aria-label="data.currentPhoto.comment">
+    <md-dialog-content>
+        <div class="row">
+            <div class="col-md-4 col-sm-6">
+                <img class="img-dialog" alt="{{data.currentPhoto.comment}}"
+                     style="width:auto;max-height:400px;max-width:300px;"
+                     data-ng-src="data:image/jpg;base64,{{data.currentPhoto.image}}">
+            </div>
+            <div class="col-md-8 col-sm-6">
+                <div class="comments-content-wrapper">
+                    <p style="display: table-row; font-size: 24px;">Kommentare:</p>
+                    <md-list class="comments">
+                        <md-list-item ng-class="{'comment': item.deleteable, 'comment-inverse': !item.deleteable}" ng-repeat="item in data.comments track by $index">
+                            <p class="comment-item">{{item.message}}</p>
+                            <md-icon ng-if="item.deleteable" class="delete-comment material-icons md-36" ng-click="deleteComment(item)"
+                                     aria-label="Delete" class="md-secondary md-hue-3">delete
+                            </md-icon>
+                            <md-divider ng-if="!$last" style="background:#eee"></md-divider>
+                        </md-list-item>
+                    </md-list>
+                    <div class="comment-input-wrapper">
+                        <div class="row">
+                            <div class="col-md-10" style="padding-left:0">
+                                <md-input-container>
+                                    <input md-autofocus type="text" ng-model="commentText" placeholder="Kommentar ..."
+                                           class="comment-input">
+                                </md-input-container>
+                            </div>
+                            <div class="col-md-2">
+                                <md-button id="send-comment-button" ng-click="sendComment()" class="md-primary button">
+                                    Senden
+                                </md-button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </md-dialog-content>
+    <md-dialog-actions>
+        <md-button ng-click="closePhoto()" class="md-primary">
+            Close
+        </md-button>
+    </md-dialog-actions>
+</md-dialog>

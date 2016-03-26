@@ -1,0 +1,516 @@
+@import url(https://fonts.googleapis.com/css?family=Roboto:300);
+
+* {
+    font-family: 'Roboto', sans-serif; !important;
+    font-weight: 300;
+}
+
+#raspberry *{
+    font-weight: 300 !important;
+}
+
+table,.table {
+    width: 75%;
+    margin: 15px auto;
+    display: table;
+}
+#overlay
+{
+    border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    text-align: center;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    margin-left: -100px;
+}
+.table>thead>tr>th, .table>tbody>tr>th, .table>tfoot>tr>th, .table>thead>tr>td, .table>tbody>tr>td, .table>tfoot>tr>td {
+    vertical-align: middle;
+}
+.pagination>li {
+    cursor: pointer;
+}
+.actions{
+    display:table;font-size:24px;margin:0 auto;cursor:pointer;
+}
+.alert{
+    margin-bottom:0px;
+}
+
+.footer {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+body {
+    url('/images/background.jpg')
+    font-size:16px;
+}
+
+#myContainer {
+    width: 75%;
+    margin: 0 auto;
+}
+
+.row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.pagination>.active>a, .pagination>.active>span, .pagination>.active>a:hover, .pagination>.active>span:hover, .pagination>.active>a:focus, .pagination>.active>span:focus {
+   z-index: 0;
+}
+
+img {
+    border-radius: 4px;
+}
+
+a {
+    cursor: pointer;
+    color: #eeeeee;
+}
+
+a:hover, a:focus {
+    color: #eeeeee;
+}
+
+.ui-slider .ui-slider-handle {
+    width: 0.7em;
+}
+.glyphicon-play,.glyphicon-pause {
+    cursor: pointer;
+}
+
+.ui-widget-content {
+    border: 1px solid #ffffff;
+}
+
+.table>thead>tr>th, .table>tbody>tr>th, .table>tfoot>tr>th, .table>thead>tr>td, .table>tbody>tr>td, .table>tfoot>tr>td {
+    border-top: none;
+}
+
+.ui-state-hover, .ui-widget-content .ui-state-hover, .ui-widget-header .ui-state-hover, .ui-state-focus, .ui-widget-content .ui-state-focus, .ui-widget-header .ui-state-focus {
+    border: 1px solid #bbbbbb;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 100px;
+    border-top: 1px solid #eeeeee;
+    background-color: #0097A7;
+}
+.fix {
+    margin-top: 10px;
+}
+
+.container .text-muted {
+    margin: 20px 0;
+}
+
+.footer > .container{
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.row-shrinked{
+    width: 80%;
+    margin: 0 auto;
+}
+
+#top{
+    padding:0px;margin-top:80px;
+}
+
+#playlistContainer {
+
+}
+
+#searchAudio {
+    display: block;
+    margin-top: 25px;
+    margin-left: 28px;
+    margin-bottom: 25px;
+}
+
+.col-md-05{
+    width: 4.333333%;
+}
+
+.sortable-handle {
+    cursor: move;
+}
+
+.navbar-default {
+    background: #0097a7;
+    border-color: #08aabb;
+}
+.navbar-default .navbar-brand {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
+    color: #fdfafa;
+}
+.navbar-default .navbar-text {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-nav > li > a {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-nav > li > a:hover, .navbar-default .navbar-nav > li > a:focus {
+    color: #fdfafa;
+}
+.navbar-default .navbar-nav > li > .dropdown-menu {
+    background: #0097a7;
+}
+.navbar-default .navbar-nav > li > .dropdown-menu > li > a {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-nav > li > .dropdown-menu > li > a:hover,
+.navbar-default .navbar-nav > li > .dropdown-menu > li > a:focus {
+    color: #fdfafa;
+    background: #08aabb;
+}
+.navbar-default .navbar-nav > li > .dropdown-menu > li > .divider {
+    background: #0097a7;
+}
+.navbar-default .navbar-nav > .active > a, .navbar-default .navbar-nav > .active > a:hover, .navbar-default .navbar-nav > .active > a:focus {
+    color: #fdfafa;
+    background: #08aabb;
+}
+.navbar-default .navbar-nav > .open > a, .navbar-default .navbar-nav > .open > a:hover, .navbar-default .navbar-nav > .open > a:focus {
+    color: #fdfafa;
+    background: #08aabb;
+}
+.navbar-default .navbar-toggle {
+    border-color: #08aabb;
+}
+.navbar-default .navbar-toggle:hover, .navbar-default .navbar-toggle:focus {
+    background: #08aabb;
+}
+.navbar-default .navbar-toggle .icon-bar {
+    background: #ecf0f1;
+}
+.navbar-default .navbar-collapse,
+.navbar-default .navbar-form {
+    border-color: #ecf0f1;
+}
+.navbar-default .navbar-link {
+    color: #ecf0f1;
+}
+.navbar-default .navbar-link:hover {
+    color: #fdfafa;
+}
+
+md-list-item .md-list-item-inner>.md-avatar:first-child, md-list-item>.md-avatar:first-child {
+    width: 100px;
+    height: 100px;
+}
+
+md-card>a>.md-card-image {
+    height:50%;
+}
+
+md-card {
+    width: 300px;
+    height: 500px;
+}
+
+md-backdrop.md-opaque.md-default-theme,
+.md-dialog-container {
+    position:fixed;
+}
+
+md-dialog {
+    width: auto;
+    height:auto;
+    max-height:none;
+    max-width: none;
+    position:fixed;
+    top: 40px;
+}
+
+.custom-dialog {
+    padding-top: 40px;
+    margin-top: 40px;
+    width: 80%;
+    height:80%;
+    position: fixed;
+    left: 10%;
+}
+
+html, body {
+    min-height:100%; height:auto;
+}
+
+.img-dialog {
+    position: fixed;
+    border: 10px solid rgb(0,150,136);
+}
+
+.text-primary {
+    color: rgb(0,150,136);
+}
+
+.button {
+    background: rgb(0,150,136) !important;
+    color: #eee !important;
+}
+
+.material-icons {
+    color: rgb(0,150,136);
+    margin-right: 1em;
+    font-size: 36px !important;
+}
+
+.text-primary-large {
+    font-size: 28px;
+}
+
+a {
+    color: #444;
+}
+
+a:hover{
+    color: rgb(0,150,136);
+}
+
+.comment {
+    padding: 10px;
+    width: 100%;
+    right: 2px;
+    border-radius: 4px;
+    font-size: 16px;
+    background: #eeeeee;
+    color: rgb(0,150,136)
+}
+
+.comment-inverse {
+    padding: 10px;
+    width: 100%;
+    right: 2px;
+    border-radius: 4px;
+    font-size: 16px;
+    background: rgb(0,150,136);
+    color: #eeeeee;
+}
+
+.comments-content-wrapper{
+    width: 100%;
+    height: auto;
+    position: relative;
+    display: table;
+}
+
+.comments {
+    overflow-y: scroll;
+    height: 300px;
+    width: 100%;
+}
+
+.comment-item {
+    font-size: 16px;
+}
+
+.photo-desc {
+    color: #888;
+    font-size: 20px;
+    text-align: center;
+}
+
+.comment-input-wrapper {
+    clear:both;
+    display: table-row;
+    vertical-align: bottom;
+    width:100%;
+    height: auto;
+}
+
+#send-comment-button {
+    margin-top: 16px;
+}
+
+.comment-input-wrapper>.row{
+    margin-top: 14px;
+}
+
+md-input-container {
+    width: 100%;
+}
+
+.comment-input{
+    vertical-align: bottom;
+    display: table-cell;
+    width:100%;
+    height: auto;
+}
+
+#displayPlaylist,#editPlaylist {
+    margin-top : 70px;
+}
+
+@media (max-width: 767px) {
+    .navbar-default .navbar-nav .open .dropdown-menu > li > a {
+        color: #ecf0f1;
+    }
+    .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover, .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus {
+        color: #fdfafa;
+    }
+    .navbar-default .navbar-nav .open .dropdown-menu > .active > a, .navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover, .navbar-default .navbar-nav .open .dropdown-menu > .active > a:focus {
+        color: #fdfafa;
+        background: #08aabb;
+    }
+}
+
+.btn-success {
+    background-image: none;
+    border-color: #006064;
+    background-color: #0097A7;
+}
+
+.btn-success:hover,.btn-success:active,.btn-success:focus {
+    background-image: none;
+    border-color: #0097A7;
+    background-color: #006064;
+}
+
+.btn-default,.btn-default:hover,.btn-default:active,.btn-default:focus {
+    color: #fff;
+}
+
+/*
+  We're using CSS transitions for when
+  the enter and move events are triggered
+  for the element that has the .repeated-item
+  class
+*/
+/*.repeated-item.ng-enter, .repeated-item.ng-move {
+    -webkit-transition:0.5s linear all;
+    -moz-transition:0.5s linear all;
+    -o-transition:0.5s linear all;
+    transition:0.5s linear all;
+    opacity:0;
+}*/
+
+/*
+ The ng-enter-active and ng-move-active
+ are where the transition destination properties
+ are set so that the animation knows what to
+ animate.
+*/
+/*.repeated-item.ng-enter.ng-enter-active,*/
+.repeated-item.ng-move.ng-move-active {
+    opacity:1;
+}
+
+/*
+  We're using CSS keyframe animations for when
+  the leave event is triggered for the element
+  that has the .repeated-item class
+*/
+.repeated-item.ng-leave {
+    -webkit-animation:0.3s my_animation;
+    -moz-animation:0.3s my_animation;
+    -o-animation:0.3s my_animation;
+    animation:0.3s my_animation;
+}
+
+@keyframes my_animation {
+    from { opacity:1; }
+    to { opacity:0; }
+}
+
+/*
+  Unfortunately each browser vendor requires
+  its own definition of keyframe animation code...
+*/
+@-webkit-keyframes my_animation {
+    from { opacity:1; }
+    to { opacity:0; }
+}
+
+@-moz-keyframes my_animation {
+    from { opacity:1; }
+    to { opacity:0; }
+}
+
+@-o-keyframes my_animation {
+    from { opacity:1; }
+    to { opacity:0; }
+}
+
+.vertical-center {
+    min-height: 100%;  /* Fallback for vh unit */
+    min-height: 100vh; /* You might also want to use
+                        'height' property instead.
+
+                        Note that for percentage values of
+                        'height' or 'min-height' properties,
+                        the 'height' of the parent element
+                        should be specified explicitly.
+
+                        In this case the parent of '.vertical-center'
+                        is the <body> element */
+
+    /* Make it a flex container */
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+
+    /* Align the bootstrap's container vertically */
+    -webkit-box-align : center;
+    -webkit-align-items : center;
+    -moz-box-align : center;
+    -ms-flex-align : center;
+    align-items : center;
+
+    /* In legacy web browsers such as Firefox 9
+       we need to specify the width of the flex container */
+    width: 100%;
+
+    /* Also 'margin: 0 auto' doesn't have any effect on flex items in such web browsers
+       hence the bootstrap's container won't be aligned to the center anymore.
+
+       Therefore, we should use the following declarations to get it centered again */
+    -webkit-box-pack : center;
+    -moz-box-pack : center;
+    -ms-flex-pack : center;
+    -webkit-justify-content : center;
+    justify-content : center;
+}
+
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+    display: none !important;
+}
+
+#loaderDiv {
+    /*position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1100;
+    background-color: white;
+    opacity: 0.6;*/
+}
+
+.ajax-loader {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    z-index: 1100;
+    margin-left: -50px; /* -1 * image width / 2 */
+    margin-top: -50px; /* -1 * image height / 2 */
+    display: block;
+    opacity: 0.8;
+}
+
+.delete-comment {
+    color: rgb(0,150,136) !important;
+    font-size: 24px !important;
+    margin-right: 5px !important;
+}

@@ -1,0 +1,18 @@
+<div id="audioContainer" class="repeated-item">
+
+    <div id="myContainer">
+        <md-list layout="column" layout-align="start">
+            <md-list-item ng-click="showPhoto(tile)" md-ink-ripple class="md-4-line" ng-repeat="tile in data.photos track by tile.photo_id">
+                <img ng-click="showPhotoInModal($event, $index)" alt="{{tile.comment}}" class="md-avatar" ng-src="data:image/jpg;base64,{{tile.image}}">
+                <div class="md-list-item-text">
+                    <h3 class="text-primary text-primary-large" ng-bind-html='tile.comment'></h3>
+                    <p class="text-primary">Kommentare: <a>{{tile.comment_count}}</a></p>
+                </div>
+                <md-icon ng-if="tile.deletable" class="material-icons md-36" ng-click="deletePhoto(tile)" aria-label="Delete" class="md-secondary md-hue-3">delete</md-icon>
+                <md-divider ng-if="!$last"></md-divider>
+            </md-list-item>
+        </md-list>
+
+    </div>
+
+</div>

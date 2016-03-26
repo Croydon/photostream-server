@@ -1,11 +1,67 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
-    <h1><%= title %></h1>
-    <p>Welcome to <%= title %></p>
-  </body>
+<!doctype html>
+<html id="app">
+<head>
+    <base href="/photostream/">
+    <title>PhotoStream</title>
+    <link href="/stylesheets/normalize.css" rel="stylesheet"/>
+    <link href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css" rel="stylesheet">
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet"/>
+    <link href="/images/favicon.ico" type="image/x-icon" rel="shortcut icon"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.0.6/angular-material.min.css" rel="stylesheet"/>
+    <link href="/stylesheets/app.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="/stylesheets/animation.css" rel="stylesheet"/>
+</head>
+<body layout="column">
+
+<div layout="column" layout-fill>
+    <md-toolbar ng-controller="ToolbarController">
+        <div class="md-toolbar-tools">
+            <span>PhotoStream</span>
+            <!-- fill up the space between left and right area -->
+            <span flex></span>
+            <md-button ng-click="reloadPhotos()"><i style="color: #eee;margin-top:13px;" class="material-icons">refresh</i></md-button>
+        </div>
+    </md-toolbar>
+    <md-content>
+        <div>
+
+            <div id="loaderDiv" loader>
+                <md-progress-circular class="ajax-loader" md-diameter="130" md-mode="indeterminate"></md-progress-circular>
+            </div>
+
+            <div class="ng-cloak">
+
+                <div ui-view></div>
+
+            </div>
+
+
+        </div>
+    </md-content>
+
+</div>
+
+</body>
+<script src="/javascripts/jquery-2.1.3.min.js" type="application/javascript"></script>
+<script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.2/angular.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.2/angular-animate.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.2/angular-aria.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.2/angular-sanitize.min.js"></script>
+<script src="https://code.angularjs.org/1.5.2/angular-route.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.0.6/angular-material.min.js"
+        type="application/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.15/angular-ui-router.min.js"
+        type="application/javascript"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js" type="application/javascript"></script>
+<script src="https://cdn.socket.io/socket.io-1.2.1.js"></script>
+<script src="/javascripts/socket-io-angular.js"></script>
+<script src="/javascripts/deferred-bootstrap.js" type="application/javascript"></script>
+<script src="/javascripts/app.js" type="application/javascript"></script>
+<script src="/javascripts/AppController.js" type="application/javascript"></script>
+<script src="/javascripts/WebcamController.js" type="application/javascript"></script>
+<script src="/javascripts/ToolbarController.js" type="application/javascript"></script>
+
 </html>

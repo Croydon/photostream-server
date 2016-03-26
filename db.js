@@ -208,13 +208,13 @@ function SqlConnection() {
     }
 
     function injectAmountOfComments(connection, photo, key, callback){
-        var query = 'SELECT COUNT(*) FROM comment WHERE photo_id = ?';
+        var query = 'SELECT COUNT(*) AS amount FROM comment WHERE photo_id = ?';
         connection.query(query, [photo.photo_id], function(err,response){
             if (err){
                 connection.release();
                 throw err;
             }else{
-                photo.comment_count = response !== undefined ? response.length : 0;
+                photo.comment_count = response !== undefined && response.length > 0 ? response[0].amount : 0;
                 callback();
             }
         });
