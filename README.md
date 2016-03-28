@@ -1,7 +1,5 @@
 # photostream-server
 
-Diese Anwendung ist Teil des Praktikums vom Kurs <i>Nutzerzentrierte Softwareentwicklung</i> der Hochschule Darmstadt für das Wintersemester 16/17
-
 ## Datenbankschema
 ![Datenbankschema](https://raw.githubusercontent.com/aschattney/photostream-server/master/database/db_schema.png)
 
