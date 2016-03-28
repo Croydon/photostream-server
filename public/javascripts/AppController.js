@@ -1,11 +1,11 @@
-angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http', 'appState', function ($scope, $mdDialog, $http, appState) {
+angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http', 'photoStreamService', function ($scope, $mdDialog, $http, photoStreamService) {
 
-    $scope.data = appState.data;
+    $scope.data = photoStreamService.data;
 
     $scope.loadMorePhotos = function(){
         if (!$scope.data.isLoadingPhotos) {
             $scope.data.isLoadingPhotos = true;
-            appState.loadMorePhotos(function(){
+            photoStreamService.loadMorePhotos(function(){
                 $scope.data.isLoadingPhotos = false;
                 if ($(document).height() == $(window).height()){
                     $scope.loadMorePhotos();
@@ -30,7 +30,7 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
             controller: function ModalController($scope, $mdDialog) {
 
                 $scope.commentText = '';
-                $scope.data = appState.data;
+                $scope.data = photoStreamService.data;
 
                 $scope.closePhoto = function () {
                     $mdDialog.hide();
@@ -40,13 +40,13 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
     };
 
     $scope.deletePhoto = function(photo){
-      appState.deletePhoto(photo.photo_id, function(success){
+      photoStreamService.deletePhoto(photo.photo_id, function(success){
 
       });
     };
 
     $scope.showPhoto = function (photo) {
-        appState.loadComments(photo.photo_id, function(){
+        photoStreamService.loadComments(photo.photo_id, function(){
 
             function onDialogShowing(){
                 $('.md-errors-spacer').remove();
@@ -59,7 +59,7 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
                     controller: function DialogController($scope, $mdDialog) {
 
                         $scope.commentText = '';
-                        $scope.data = appState.data;
+                        $scope.data = photoStreamService.data;
 
                         var self = this;
 
@@ -84,21 +84,21 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
                         };
 
                         $scope.deleteComment = function(comment){
-                            appState.deleteComment(comment.comment_id, function(success){
+                            photoStreamService.deleteComment(comment.comment_id, function(success){
 
                             });
                         };
 
-                        appState.addCommentsCallback(self);
+                        photoStreamService.addCommentsCallback(self);
 
                         $scope.closePhoto = function () {
-                            appState.removeCommentsCallback(self);
+                            photoStreamService.removeCommentsCallback(self);
                             $mdDialog.hide();
                         };
 
                         $scope.sendComment = function () {
                             if ($scope.commentText.trim() != ''){
-                                appState.sendComment(photo.photo_id, $scope.commentText, function(success){
+                                photoStreamService.sendComment(photo.photo_id, $scope.commentText, function(success){
                                    if (success)
                                         $scope.commentText = '';
                                 });

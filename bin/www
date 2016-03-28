@@ -37,7 +37,7 @@ var routes = require('../routes/index');
 
 var app = appBuilder(routes, io);
 
-var port = normalizePort(process.env.PORT || '8081');
+var port = normalizePort(process.env.PORT || require('../config').port);
 app.set('port', port);
 
 /**

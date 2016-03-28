@@ -5,6 +5,15 @@
     font-weight: 300;
 }
 
+.photo-container {
+    width: 75%;
+    margin: 0 auto;
+}
+
+.photo-container-wrapper {
+    background-image : url('/images/background.png');
+}
+
 #raspberry *{
     font-weight: 300 !important;
 }
@@ -46,11 +55,6 @@ table,.table {
 body {
     url('/images/background.jpg')
     font-size:16px;
-}
-
-#myContainer {
-    width: 75%;
-    margin: 0 auto;
 }
 
 .row {

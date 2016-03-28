@@ -11,7 +11,7 @@
                 <div class="comments-content-wrapper">
                     <p style="display: table-row; font-size: 24px;">Kommentare:</p>
                     <md-list class="comments">
-                        <md-list-item ng-class="{'comment': item.deleteable, 'comment-inverse': !item.deleteable}" ng-repeat="item in data.comments track by $index">
+                        <md-list-item ng-class="{'repeated-item': 'true', 'comment': item.deleteable, 'comment-inverse': !item.deleteable}" ng-repeat="item in data.comments track by $index">
                             <p class="comment-item">{{item.message}}</p>
                             <md-icon ng-if="item.deleteable" class="delete-comment material-icons md-36" ng-click="deleteComment(item)"
                                      aria-label="Delete" class="md-secondary md-hue-3">delete

@@ -1,8 +1,8 @@
-angular.module('App').controller('ToolbarController', ['$scope', 'appState', function ($scope, appState) {
-    $scope.data = appState.data;
+angular.module('App').controller('ToolbarController', ['$scope', 'photoStreamService', function ($scope, photoStreamService) {
+    $scope.data = photoStreamService.data;
     $scope.reloadPhotos = function(){
         $scope.data.isLoadingPhotos = true;
-        appState.loadPhotos(function(){
+        photoStreamService.loadPhotos(function(){
             $scope.data.isLoadingPhotos = false;
         });
     };
