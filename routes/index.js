@@ -30,6 +30,8 @@ module.exports = function(app, io) {
   var etag = require('etag');
   const CACHE_TIMEOUT = 3600 * 1000;
   const STREAM_PREFIX = "stream_";
+  const MAX_PHOTO_ID_PREFIX = "max_photo_id_";
+  const MAX_PHOTO_ID = 100000;
   const SEARCH_PREFIX = "search_";
   const MAX_COMMENT_LENGTH = 150;
   var express = require('express');
@@ -51,12 +53,12 @@ module.exports = function(app, io) {
 
   app.get(API_URL + 'stream', function (req, res) {
     var installationId = req.header('installation_id');
-    doGetPhotos(installationId, 1, req, res);
+    doGetPhotos(installationId, 1, MAX_PHOTO_ID, req, res);
   });
 
   app.get(API_URL + 'stream/more', function(req, res){
     var installationId = req.header('installation_id');
-    doGetPhotos(installationId, undefined, req, res);
+    doGetPhotos(installationId, undefined, undefined, req, res);
   });
 
   app.get(API_URL + 'search', function(req, res){
@@ -68,13 +70,13 @@ module.exports = function(app, io) {
       return;
     }
 
-    doSearch(installationId, query, 1, res);
+    doSearch(installationId, query, 1, MAX_PHOTO_ID, res);
 
   });
 
   app.get(API_URL + 'search/more', function(req, res){
     var installationId = req.header('installation_id');
-    doSearch(installationId, undefined, undefined, res);
+    doSearch(installationId, undefined, undefined, undefined, res);
   });
 
   app.post(API_URL + 'image', function (req, res) {
@@ -95,7 +97,7 @@ module.exports = function(app, io) {
                   photo.deleteable = true;
                   res.json(photo);
                   delete photo.deleteable;
-                  delete photo.etag;
+                  delete photo.etag; // ??
                   io.webSocket.emit(installationId, 'new_photo', photo);
                 });
               });
@@ -136,8 +138,12 @@ module.exports = function(app, io) {
             res.status(200).json(comment);
             comment.deleteable = false;
             io.webSocket.emit(installationId, 'new_comment', comment);
+            db.getCommentCount(connection, photoId, function(commentCount){
+              connection.release();
+              io.webSocket.emit(undefined, 'new_comment_count', {photo_id : photoId, comment_count : commentCount});
+            });
           }else{
-            res.status(500).json({ response_code: 500, message: 'unknown error'});
+            res.status(500).json({ response_code: 500, message: 'internal server error'});
           }
         });
       }
@@ -156,13 +162,19 @@ module.exports = function(app, io) {
       if (err) {
         throw err;
       } else {
-        db.deleteComment(connection, commentId, installationId, function (affectedRows) {
-          if (affectedRows > 0){
-            res.status(200).end();
-            io.webSocket.emit(installationId, "comment_deleted", commentId);
-          }else{
-            res.status(404).json( { response_code: 404, message: 'comment not found', comment_id: commentId});
-          }
+        db.getPhotoId(connection, commentId, function(photoId){
+            db.deleteComment(connection, commentId, installationId, function (affectedRows) {
+              if (affectedRows > 0){
+                res.status(200).end();
+                io.webSocket.emit(installationId, "comment_deleted", commentId);
+                db.getCommentCount(connection, photoId, function(commentCount){
+                  connection.release();
+                  io.webSocket.emit(undefined, 'new_comment_count', {photo_id : photoId, comment_count : commentCount});
+                });
+              }else{
+                res.status(404).json( { response_code: 404, message: 'comment not found', comment_id: commentId});
+              }
+            });
         });
       }
     });
@@ -205,6 +217,7 @@ module.exports = function(app, io) {
     }
 
     var installation_id = req.header('installation_id');
+    var ifModifiedSince = req.header('if-modified-since');
     var photoId = req.params.id;
 
     if (sendErrorIfNAN(photoId, 'photo id', res))
@@ -215,7 +228,14 @@ module.exports = function(app, io) {
         throw err;
       } else {
         db.getComments(connection, photoId, installation_id, invalidPhotoIdCallback, function (comments) {
-          res.json({photo_id: photoId, comments: comments});
+          var response = {photo_id: photoId, comments: comments};
+          var hash = etag(JSON.stringify(response));
+          if (ifModifiedSince === undefined || ifModifiedSince === null || ifModifiedSince != hash) {
+            res.setHeader('ETag', hash);
+            res.json(response)
+          }else{
+            res.status(304).end();
+          }
         });
       }
     });
@@ -270,6 +290,32 @@ module.exports = function(app, io) {
     })
   });
 
+  app.get(API_URL + "image/:id/content", function(req, res){
+    var photoId = req.params.id;
+
+    if (sendErrorIfNAN(photoId, 'photo id', res))
+      return;
+
+    db.openConnection(function(err, connection){
+      if(err)
+        throw err;
+      else{
+        db.photoExists(connection, photoId, function(exists){
+          if (exists){
+            db.getPhotoContent(connection, photoId, function(content){
+              res.header('Content-Type', 'image/png');
+              var buff = new Buffer(content, 'base64');
+              res.send(buff);
+            });
+          }else{
+            res.status(404).json( { response_code: 404, message: 'invalid photo id' } );
+          }
+        });
+      }
+    });
+
+  });
+
   function sendErrorIfNAN(value, name, res){
     if (isNaN(value)){
       res.status(401).json({ response_code : 401, message: name + ' must be a number but value is: ' + value});
@@ -285,11 +331,13 @@ module.exports = function(app, io) {
       if (err)
         throw err;
       else{
-        var page = 1;
-        db.getPhotos(connection, installationId, page, function (response) {
-          var hasNextPage = response !== undefined && response.length > 0;
-          var jsonResponse = {photos: response, page: page, has_next_page: hasNextPage};
-          var hash = etag(JSON.stringify(jsonResponse));
+        db.getPhotos(connection, installationId, 1000000, function (response) {
+          //var hasNextPage = response !== undefined && response.length > 0;
+          for (var i = 0; i < response.length; i++){
+            delete response[i].favorite;
+          }
+          //var jsonResponse = {photos: response, page: page, has_next_page: hasNextPage};
+          var hash = etag(JSON.stringify(response));
           callback(hash);
         });
       }
@@ -297,12 +345,13 @@ module.exports = function(app, io) {
 
   }
 
-  function doGetPhotos(installationId, page, req, res){
+  function doGetPhotos(installationId, page, maxPhotoId, req, res){
 
     if (page !== undefined && page == 1){
       cache.put(STREAM_PREFIX + installationId, 1, CACHE_TIMEOUT); // Time in ms
     }else{
       page = cache.get(STREAM_PREFIX + installationId);
+      maxPhotoId = cache.get(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId);
       if (page == null){
         res.status(401).json({ response_code: 401, message: 'please use /stream endpoint first'});
         return;
@@ -313,13 +362,15 @@ module.exports = function(app, io) {
       if (err)
         throw err;
       else{
-        db.getPhotos(connection, installationId, page, function (response) {
+        db.getPhotos(connection, installationId, maxPhotoId, function (response) {
           if (response.length > 0) {
             db.openConnection(function (err, connection) {
               if (err)
                 throw err;
               else {
-                db.getPhotos(connection, installationId, page + 1, function (response_next_page) {
+                var nextMaxPhotoId = response[response.length-1].photo_id;
+                cache.put(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId, CACHE_TIMEOUT);
+                db.getPhotos(connection, installationId, nextMaxPhotoId, function (response_next_page) {
                   var hasNextPage = response_next_page !== undefined && response_next_page.length > 0;
                   var jsonResponse = {photos: response, page: page, has_next_page: hasNextPage};
                   updateGetPhotoCache(req, res, page, installationId, jsonResponse);
@@ -327,6 +378,8 @@ module.exports = function(app, io) {
               }
             });
           }else{
+            if (page == 1)
+              cache.put(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, MAX_PHOTO_ID, CACHE_TIMEOUT);
             var jsonResponse = {photos: response, page: page, has_next_page: false};
             updateGetPhotoCache(req, res, page, installationId, jsonResponse);
           }
@@ -340,20 +393,25 @@ module.exports = function(app, io) {
     cache.put(STREAM_PREFIX + installationId, cache.get(STREAM_PREFIX + installationId) + 1, CACHE_TIMEOUT);
     if (page == 1){
       var ifModifiedSince = req.header('if-modified-since');
-      var hash = etag(JSON.stringify(jsonResponse));
+      var response = JSON.parse(JSON.stringify(jsonResponse.photos));
+      for (var i = 0; i < response.length; i++){
+        delete response[i].favorite;
+        delete response[i].comment_count;
+      }
+      var hash = etag(JSON.stringify(response));
       if (ifModifiedSince === undefined || ifModifiedSince === null || ifModifiedSince != hash) {
         res.setHeader('ETag', hash);
         res.json(jsonResponse)
       }else{
+        res.setHeader('photo-page', page);
         res.status(304).end();
       }
     }else{
       res.json(jsonResponse);
     }
-
   }
 
-  function doSearch(installationId, query, page, res){
+  function doSearch(installationId, query, page, maxPhotoId, res){
 
     if (query === undefined){
       var obj = cache.get(SEARCH_PREFIX + installationId);
@@ -363,6 +421,7 @@ module.exports = function(app, io) {
       }
       query = obj.query;
       page = obj.page;
+      maxPhotoId = cache.get(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId);
     }else{
       var obj = {};
       obj.query = query;
@@ -374,10 +433,12 @@ module.exports = function(app, io) {
       if (err)
         throw err;
       else{
-        db.search(connection, installationId, query, page, function(response){
+        db.search(connection, installationId, query, maxPhotoId, function(response){
           if (response.length > 0) {
+            var nextMaxPhotoId = response[response.length-1].photo_id;
+            cache.put(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId, CACHE_TIMEOUT);
             db.openConnection(function (err, connection) {
-              db.search(connection, installationId, query, page + 1, function (response_next_page) {
+              db.search(connection, installationId, query, nextMaxPhotoId, function (response_next_page) {
                 var hasNextPage = response_next_page !== undefined && response_next_page.length > 0;
                 updateSearchCache(installationId, function(){
                   res.json({photos: response, page: page, has_next_page: hasNextPage});
@@ -385,6 +446,8 @@ module.exports = function(app, io) {
               });
             });
           }else{
+            if (page == 1)
+              cache.put(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, MAX_PHOTO_ID, CACHE_TIMEOUT);
             updateSearchCache(installationId, function(){
               res.json({photos: response, page: page, has_next_page: false});
             });

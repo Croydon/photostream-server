@@ -2,59 +2,80 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
 
     $scope.data = photoStreamService.data;
 
-    $scope.loadMorePhotos = function(){
+    $scope.loadMorePhotos = function () {
         if (!$scope.data.isLoadingPhotos) {
             $scope.data.isLoadingPhotos = true;
-            photoStreamService.loadMorePhotos(function(){
+            photoStreamService.loadMorePhotos(function () {
                 $scope.data.isLoadingPhotos = false;
-                if ($(document).height() == $(window).height()){
+                if ($(document).height() <= $(window).height()) {
                     $scope.loadMorePhotos();
                 }
             });
         }
     };
 
-    $scope.showPhotoInModal = function($event, index){
+    $scope.showPhotoInModal = function ($event, index) {
         $event.stopPropagation();
-        function onDialogShowing(){
-            var cssLeft = ($(document).width() - $('md-dialog').width()) / 2;
+        var cssLeft = 0;
+        var cssTop = 0;
+        function onDialogShowing() {
+            $('.md-dialog-container').css('display', 'block');
             $('md-dialog').css('left', cssLeft + "px");
-
+            $('md-dialog').css('top', cssTop + "px");
         };
 
         $scope.data.currentPhoto = $scope.data.photos[index];
-        $mdDialog.show({
+
+        var p = {
             parent: angular.element(document.body),
-            templateUrl : '/javascripts/template/image-dialog.html',
-            onComplete : onDialogShowing,
-            controller: function ModalController($scope, $mdDialog) {
-
-                $scope.commentText = '';
+            templateUrl: '/javascripts/template/image-dialog.html',
+            hasBackdrop: false,
+            controller: function($scope, $mdDialog){
                 $scope.data = photoStreamService.data;
+            },
+            onComplete: function (){
+                cssLeft = $(window).width() / 2 - $('.md-card-image').width() / 2;
+                cssTop =  ($(window).height() / 2 - $('.md-card-image').height() / 2) / 2;
+                $mdDialog.hide();
+            },
+            onRemoving: function(){
+                $mdDialog.show({
+                    parent: angular.element(document.body),
+                    templateUrl: '/javascripts/template/image-dialog.html',
+                    clickOutsideToClose : true,
+                    onComplete: onDialogShowing,
+                    controller: function ModalController($scope, $mdDialog) {
+                        $scope.commentText = '';
+                        $scope.data = photoStreamService.data;
 
-                $scope.closePhoto = function () {
-                    $mdDialog.hide();
-                };
+                        $scope.closePhoto = function () {
+                            $mdDialog.hide();
+                        };
+                    }
+                });
+            }
+        };
+        $mdDialog.show(p);
+    };
+
+    $scope.deletePhoto = function (photo) {
+        photoStreamService.deletePhoto(photo.photo_id, function (success) {
+            if ($(document).height() <= $(window).height()) {
+                $scope.loadMorePhotos();
             }
         });
     };
 
-    $scope.deletePhoto = function(photo){
-      photoStreamService.deletePhoto(photo.photo_id, function(success){
-
-      });
-    };
-
     $scope.showPhoto = function (photo) {
-        photoStreamService.loadComments(photo.photo_id, function(){
+        photoStreamService.loadComments(photo.photo_id, function () {
 
-            function onDialogShowing(){
+            function onDialogShowing() {
                 $('.md-errors-spacer').remove();
             }
 
             $mdDialog.show({
                     parent: angular.element(document.body),
-                    templateUrl : '/javascripts/template/dialog.html',
+                    templateUrl: '/javascripts/template/dialog.html',
                     onComplete: onDialogShowing,
                     controller: function DialogController($scope, $mdDialog) {
 
@@ -63,28 +84,28 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
 
                         var self = this;
 
-                        self.onNewComment = function(comment){
+                        self.onNewComment = function (comment) {
                             if (photo.photo_id == comment.photo_id) {
                                 $scope.data.comments.push(comment);
-                                setTimeout(function(){
+                                setTimeout(function () {
                                     var $comments = $(".comments");
-                                    $comments.animate({ scrollTop: 1000 }, "slow");
+                                    $comments.animate({scrollTop: 1000}, "slow");
                                 }, 200);
                             }
                         };
 
-                        self.onCommentDeleted = function(commentId){
-                            for (var i = 0; i < $scope.data.comments.length; i++){
+                        self.onCommentDeleted = function (commentId) {
+                            for (var i = 0; i < $scope.data.comments.length; i++) {
                                 var c = $scope.data.comments[i];
-                                if (c.comment_id == commentId){
+                                if (c.comment_id == commentId) {
                                     $scope.data.comments.splice(i, 1);
                                     break;
                                 }
                             }
                         };
 
-                        $scope.deleteComment = function(comment){
-                            photoStreamService.deleteComment(comment.comment_id, function(success){
+                        $scope.deleteComment = function (comment) {
+                            photoStreamService.deleteComment(comment.comment_id, function (success) {
 
                             });
                         };
@@ -97,9 +118,9 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
                         };
 
                         $scope.sendComment = function () {
-                            if ($scope.commentText.trim() != ''){
-                                photoStreamService.sendComment(photo.photo_id, $scope.commentText, function(success){
-                                   if (success)
+                            if ($scope.commentText.trim() != '') {
+                                photoStreamService.sendComment(photo.photo_id, $scope.commentText, function (success) {
+                                    if (success)
                                         $scope.commentText = '';
                                 });
                             }
@@ -111,14 +132,24 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
         });
     };
 
-    window.onscroll = function(ev) {
+    function OnScroll(ev){
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
             $scope.loadMorePhotos();
         }
+    }
+
+    window.onscroll = OnScroll;
+
+    $scope.loadPhotos = function () {
+        $scope.data.isLoadingPhotos = true;
+        photoStreamService.loadPhotos(function () {
+            $scope.data.isLoadingPhotos = false;
+            setTimeout(function () {
+                OnScroll();
+            }, 0);
+        });
     };
 
-    if ($(document).height() == $(window).height()){
-        $scope.loadMorePhotos();
-    }
+    $scope.loadPhotos();
 
 }]);

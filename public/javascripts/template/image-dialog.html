@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<md-dialog style="width:auto; height: auto;" aria-label="data.currentPhoto.comment">
-    <md-dialog-content>
-        <img class="md-card-image" alt="{{data.currentPhoto.comment}}" width="100%" height="100%"
-             style="max-height:500px;" data-ng-src="data:image/jpg;base64,{{data.currentPhoto.image}}">
+<md-dialog style="width:auto;left: -300000px; height: auto;" aria-label="data.currentPhoto.comment">
+    <md-dialog-content style="height: auto;">
+        <img class="md-card-image" alt="{{data.currentPhoto.comment}}" width="auto"
+             style="max-height:500px;" data-ng-src="{{data.currentPhoto.image}}">
     </md-dialog-content>
     <md-dialog-actions>
         <md-button ng-click="closePhoto()" class="md-primary">

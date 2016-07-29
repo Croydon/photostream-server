@@ -208,9 +208,13 @@ a:hover, a:focus {
     color: #fdfafa;
 }
 
-md-list-item .md-list-item-inner>.md-avatar:first-child, md-list-item>.md-avatar:first-child {
-    width: 100px;
-    height: 100px;
+md-list-item .md-avatar, md-list-item .md-list-item-inner .md-avatar {
+    width: 120px;
+    height: auto;
+}
+
+md-list-item .md-avatar, md-list-item .md-avatar-icon, md-list-item .md-list-item-inner .md-avatar, md-list-item .md-list-item-inner .md-avatar-icon {
+    border-radius: 10%;
 }
 
 md-card>a>.md-card-image {
@@ -233,7 +237,6 @@ md-dialog {
     max-height:none;
     max-width: none;
     position:fixed;
-    top: 40px;
 }
 
 .custom-dialog {

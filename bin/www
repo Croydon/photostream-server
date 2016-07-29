@@ -134,7 +134,7 @@ webSocket.on(events.ON_CONNECTION, function (socket) {
 
 });
 
-webSocket.emit = function(token,instruction,data){
+webSocket.emit = function(token, instruction, data){
   for (var p = 0; p < webSocket.connectedSockets.length; p++){
     var currentSocket = webSocket.connectedSockets[p];
     if (currentSocket.uuid != token){

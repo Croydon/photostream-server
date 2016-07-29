@@ -87,7 +87,6 @@ function SqlConnection() {
                 throw err;
             }else {
                 var affectedRows = response.affectedRows;
-                connection.release();
                 callback(affectedRows);
             }
         });
@@ -127,10 +126,38 @@ function SqlConnection() {
         });
     };
 
+    SqlConnection.prototype.getPhotoId = function(connection, commentId, callback){
+        var query = 'SELECT photo_id FROM comment WHERE comment_id = ?';
+        connection.query(query, [commentId], function(err, response){
+            if (err){
+                connection.release();
+                throw err;
+            }else{
+                if (response.length > 0) {
+                    callback(response[0].photo_id);
+                }else{
+                    callback(0);
+                }
+            }
+        });
+    };
+
+    SqlConnection.prototype.getCommentCount = function(connection, photoId, callback){
+        var query = 'SELECT COUNT(*) as comment_count FROM comment WHERE photo_id = ?';
+        connection.query(query, [photoId], function(err, response){
+           if (err){
+               connection.release();
+               throw err;
+           }else{
+               var comment_count = response[0].comment_count;
+               callback(comment_count);
+           }
+        });
+    };
+
     SqlConnection.prototype.getComment = function(connection, commentId, installationId, callback){
         var query = 'SELECT * FROM comment WHERE comment_id = ?';
         connection.query(query, [commentId], function(err,response) {
-            connection.release();
             if (err) {
                 callback(undefined);
                 throw err;
@@ -147,11 +174,10 @@ function SqlConnection() {
         });
     };
 
-    SqlConnection.prototype.search = function(connection, installationId, query, page, callback){
+    SqlConnection.prototype.search = function(connection, installationId, query, maxPhotoId, callback){
         var q = "%" + query + "%";
-        var offset = (page * ITEMS_PER_PAGE) - ITEMS_PER_PAGE;
-        var query = 'SELECT p.photo_id, p.installation_id, p.image, p.comment FROM photo p WHERE p.comment LIKE ? ORDER BY p.photo_id DESC LIMIT 5 OFFSET ?';
-        connection.query(query, [q, offset], function(err, response){
+        var query = 'SELECT p.photo_id, p.installation_id, p.comment FROM photo p WHERE p.photo_id < ? AND p.comment LIKE ? ORDER BY p.photo_id DESC LIMIT ' + ITEMS_PER_PAGE;
+        connection.query(query, [maxPhotoId, q], function(err, response){
             if (err) {
                 connection.release();
                 throw err;
@@ -161,12 +187,11 @@ function SqlConnection() {
         });
     };
 
-    SqlConnection.prototype.getPhotos = function(connection, installationId, page, callback) {
+    SqlConnection.prototype.getPhotos = function(connection, installationId, lastPhotoId, callback) {
 
-        var offset = (page * ITEMS_PER_PAGE) - ITEMS_PER_PAGE;
-        var query = 'SELECT p.photo_id, p.installation_id, p.image, p.comment FROM photo p ORDER BY p.photo_id DESC LIMIT 5 OFFSET ?';
+        var query = 'SELECT p.photo_id, p.installation_id, p.comment FROM photo p WHERE p.photo_id < ? ORDER BY p.photo_id DESC LIMIT ' + ITEMS_PER_PAGE;
 
-        connection.query(query, [offset], function(err, response){
+        connection.query(query, [lastPhotoId], function(err, response){
             if (err) {
                 connection.release();
                 throw err;
@@ -177,7 +202,7 @@ function SqlConnection() {
     };
 
     SqlConnection.prototype.getPhoto = function(connection, photoId, callback){
-        var query = 'SELECT p.photo_id, p.installation_id, p.image, p.comment, COALESCE(v.favorite, 0) AS favorite FROM photo p lEFT JOIN installationid_votes v ON p.photo_id = v.photo_id AND p.installation_id = v.installation_id WHERE p.photo_id = ?';
+        var query = 'SELECT p.photo_id, p.image, p.installation_id, p.comment, COALESCE(v.favorite, 0) AS favorite FROM photo p lEFT JOIN installationid_votes v ON p.photo_id = v.photo_id AND p.installation_id = v.installation_id WHERE p.photo_id = ?';
         connection.query(query, [photoId], function(err,response){
             if (err){
                 connection.release();
@@ -198,6 +223,20 @@ function SqlConnection() {
                 var photoId = response.insertId;
                 callback(photoId);
             }
+        });
+    };
+
+    SqlConnection.prototype.getPhotoContent = function(connection, photoId, callback){
+        var query = 'SELECT image FROM photo WHERE photo_id = ?';
+        connection.query(query, [photoId], function(err, response){
+           if (err){
+               connection.release();
+               throw err;
+           }else{
+               if (response.length > 0){
+                   callback(response[0].image);
+               }
+           }
         });
     };
 

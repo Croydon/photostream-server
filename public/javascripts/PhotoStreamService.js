@@ -114,6 +114,7 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
         ).then(function (response) {
             for (var i = 0; i < response.data.photos.length; i++){
                 response.data.photos[i].comment = response.data.photos[i].comment.replace(/\n/g, '<br/>');
+                response.data.photos[i].image = 'http://' + window.location.hostname + ':' + window.location.port + "/photostream/api/image/" + response.data.photos[i].photo_id + "/content";
             }
             self.data.photos = response.data.photos;
             callback();
@@ -128,13 +129,13 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
         $http.get('/photostream/api/stream/more', {headers: { 'installation_id': 'test'} }
         ).then(function (response) {
             for (var i = 0; i < response.data.photos.length; i++){
+                response.data.photos[i].image = 'http://' + window.location.hostname + ':' + window.location.port + "/photostream/api/image/" + response.data.photos[i].photo_id + "/content";
                 self.data.photos.push(response.data.photos[i]);
             }
             if (response.data.has_next_page)
                 callback();
         }, function (error) {
             console.log(error);
-            callback();
         });
     };
 
@@ -144,7 +145,8 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
         PHOTO_DELETED: 'photo_deleted',
         COMMENT_DELETED: 'comment_deleted',
         NEW_PHOTO: 'new_photo',
-        NEW_COMMENT: 'new_comment'
+        NEW_COMMENT: 'new_comment',
+        NEW_COMMENT_COUNT: 'new_comment_count'
     };
 
     self.connected = false;
@@ -159,7 +161,20 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
 
     socket.on(events.NEW_PHOTO, function(item){
         item.comment = item.comment.replace(/\n/g, '<br/>');
+        item.image = 'http://' + window.location.hostname + ':' + window.location.port + "/photostream/api/image/" + item.photo_id + "/content";
         self.data.photos.unshift(item);
+    });
+
+    socket.on(events.NEW_COMMENT_COUNT, function(item){
+        var photoId = item.photo_id;
+        var comment_count = item.comment_count;
+        for (var position = 0; position < self.data.photos.length; position++) {
+            var photo = self.data.photos[position];
+            if (photo.photo_id == photoId) {
+                self.data.photos[position].comment_count = comment_count;
+                break;
+            }
+        }
     });
 
     function notifyNewComment(item){

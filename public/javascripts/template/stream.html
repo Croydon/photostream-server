@@ -3,7 +3,7 @@
     <div class="photo-container">
         <md-list layout="column" layout-align="start">
             <md-list-item class="repeated-item" ng-click="showPhoto(tile)" md-ink-ripple class="md-4-line" ng-repeat="tile in data.photos track by tile.photo_id">
-                <img ng-click="showPhotoInModal($event, $index)" alt="{{tile.comment}}" class="md-avatar" ng-src="data:image/jpg;base64,{{tile.image}}">
+                <img ng-click="showPhotoInModal($event, $index)" alt="{{tile.comment}}" class="md-avatar" ng-src="{{tile.image}}">
                 <div class="md-list-item-text">
                     <h3 class="text-primary text-primary-large" ng-bind-html='tile.comment'></h3>
                     <p class="text-primary">Kommentare: <a>{{tile.comment_count}}</a></p>
