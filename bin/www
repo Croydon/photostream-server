@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+const DEBUG = false;
+
 /**
  * Normalize a port into a number, string, or false.
  */
@@ -129,7 +131,7 @@ if (sticky.listen(server, port)) {
 
     function remove(socket, disconnect, callback) {
         if (socket.uuid in webSocket.connectedSockets) {
-            console.log("removing socket")
+            if (DEBUG) console.log("removing socket");
             var s = webSocket.connectedSockets[socket.uuid];
             //console.log("with uuid: " + s.uuid);
             if (disconnect)
@@ -142,13 +144,13 @@ if (sticky.listen(server, port)) {
 
     webSocket.on(events.ON_CONNECTION, function (socket) {
 
-        console.log("connected socket reached worker " + cluster.worker.id);
+        if (DEBUG) console.log("connected socket reached worker " + cluster.worker.id);
 
         var token = socket.handshake.query.token;
         socket.uuid = token;
 
         remove(socket, true, function () {
-            console.log("adding socket with uuid: " + socket.uuid);
+            if (DEBUG) console.log("adding socket with uuid: " + socket.uuid);
             webSocket.connectedSockets[socket.uuid] = socket;
         });
 
@@ -159,18 +161,18 @@ if (sticky.listen(server, port)) {
     });
 
     webSocket.emit = function (token, instruction, data) {
-        console.log(instruction);
-        console.log("try emitting from worker " + cluster.worker.id);
+        if (DEBUG) console.log(instruction);
+        if (DEBUG) console.log("try emitting from worker " + cluster.worker.id);
         if (token in webSocket.connectedSockets) {
             var socket = webSocket.connectedSockets[token];
             if ('uuid' in socket) {
-                console.log("current: " + socket.uuid);
+                if (DEBUG) console.log("current: " + socket.uuid);
                 socket.broadcast.emit(instruction, data);
             } else {
-                console.log("could not broadcast from worker " + cluster.worker.id + "!!");
+                if (DEBUG) console.log("could not broadcast from worker " + cluster.worker.id + "!!");
             }
         } else {
-            console.log("token not defined in worker " + cluster.worker.id + "! Sending broadcast to other workers");
+            if (DEBUG) console.log("token not defined in worker " + cluster.worker.id + "! Sending broadcast to other workers");
         }
     };
 

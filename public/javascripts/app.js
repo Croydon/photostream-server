@@ -31,8 +31,6 @@ deferredBootstrapper.bootstrap({
                 }
             }
 
-            console.log(token);
-
             var deferred = $q.defer();
 
             deferred.resolve(token);

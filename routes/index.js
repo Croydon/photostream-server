@@ -400,8 +400,6 @@ module.exports = function(app, io) {
 
   function doGetPhotos(installationId, page, maxPhotoId, photos_per_page, initial_load, req, res){
 
-    //console.log("fetching photo from worker " + cluster.worker.id);
-
     if (page === undefined){
       client.get(STREAM_PREFIX + installationId, function(err, page){
         client.get(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, function(err, maxPhotoId){
