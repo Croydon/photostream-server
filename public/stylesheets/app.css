@@ -11,7 +11,7 @@
 }
 
 .photo-container-wrapper {
-    background-image : url('/images/background.png');
+    background: #000;
 }
 
 #raspberry *{
@@ -53,8 +53,13 @@ table,.table {
 }
 
 body {
-    url('/images/background.jpg')
+    background: #000;
     font-size:16px;
+}
+
+md-toolbar {
+    width: 85%;
+    margin: 0 auto;
 }
 
 .row {
@@ -208,9 +213,40 @@ a:hover, a:focus {
     color: #fdfafa;
 }
 
-md-list-item .md-avatar, md-list-item .md-list-item-inner .md-avatar {
-    width: 120px;
-    height: auto;
+@media screen and (max-width: 399px){
+    md-list-item .md-avatar, md-list-item .md-list-item-inner .md-avatar {
+        width:80px;
+        height: auto;
+    }
+}
+
+@media screen and (min-width: 400px), screen and (max-width: 767px) {
+    md-list-item .md-avatar, md-list-item .md-list-item-inner .md-avatar {
+        width:120px;
+        height: auto;
+    }
+}
+
+@media screen and (min-width: 768px) {
+    md-list-item .md-avatar, md-list-item .md-list-item-inner .md-avatar {
+        width: 150px;
+        height: auto;
+    }
+}
+
+@media screen and (min-width: 1200px) {
+    md-list-item .md-avatar, md-list-item .md-list-item-inner .md-avatar {
+        width: 200px;
+        height: auto;
+    }
+}
+
+
+@media screen and (min-width: 1900px) {
+    md-list-item .md-avatar, md-list-item .md-list-item-inner .md-avatar {
+        width: 300px;
+        height: auto;
+    }
 }
 
 md-list-item .md-avatar, md-list-item .md-avatar-icon, md-list-item .md-list-item-inner .md-avatar, md-list-item .md-list-item-inner .md-avatar-icon {
@@ -219,6 +255,11 @@ md-list-item .md-avatar, md-list-item .md-avatar-icon, md-list-item .md-list-ite
 
 md-card>a>.md-card-image {
     height:50%;
+}
+
+.photo-container {
+    width: 85%;
+    background-image : url('/images/background.png');
 }
 
 md-card {
@@ -250,25 +291,42 @@ md-dialog {
 }
 
 .custom-dialog {
-    padding-top: 40px;
-    margin-top: 60px;
-    width: 80%;
-    height: 80%;
+    padding-top: 20px;
+    margin-top: 10vh;
+    width: auto;
+    height: auto;
+    max-width: 80%;
+    min-width: 50%;
     position: fixed;
     left: 10%;
+}
+
+@media (max-width: 768px) {
+    .custom-dialog {
+        min-width: 80%;
+    }
 }
 
 html, body {
     min-height:100%; height:auto;
 }
 
+.col-sm-0, .col-md-0, .col-lg-0 {
+    display: none;
+}
+
 .img-dialog {
     border: 2px solid rgb(0,150,136);
     width:auto;
     height:auto;
-    max-height:400px;
-    max-width:300px;
+    max-width:100%;
+    /*max-height: 400px;*/
     text-align: center;
+    display: block;
+}
+
+#send-comment-button {
+    float:right;
 }
 
 .text-primary {
@@ -320,14 +378,16 @@ a:hover{
 
 .comments-content-wrapper{
     width: 100%;
-    height: auto;
+    height: 100%;
     position: relative;
     display: table;
 }
 
 .comments {
     overflow-y: scroll;
-    height: 300px;
+    margin-bottom: 50px;
+    height: 70%;
+    min-height: 120px;
     width: 100%;
 }
 
@@ -345,12 +405,58 @@ a:hover{
     clear:both;
     display: table-row;
     vertical-align: bottom;
+    position: absolute;
+    bottom: 0;
     width:100%;
     height: auto;
 }
 
+@media (max-width: 768px){
+    md-toolbar {
+        width: 100%;
+    }
+    .photo-container {
+        width: 100%;
+    }
+}
+
+@media (max-width: 400px) {
+    .custom-dialog {
+        min-width:95%;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 768px){
+    .comment-input-wrapper>.row>.cc-1 {
+        width: 75%;
+        float: left;
+    }
+
+    .comment-input-wrapper>.row>.cc-2 {
+        width: 25%;
+        float: right;
+    }
+}
+
+.row {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    flex-wrap: wrap;
+}
+.row > [class*='col-'] {
+    display: flex;
+    flex-direction: column;
+}
+
 #send-comment-button {
-    margin-top: 16px;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    margin-bottom: 0;
+    margin-left: 15px;
 }
 
 .comment-input-wrapper>.row{
@@ -359,6 +465,14 @@ a:hover{
 
 md-input-container {
     width: 100%;
+    bottom: 0;
+    margin-bottom: 0;
+}
+
+@media (min-width: 768px) {
+    md-input-container {
+        position: absolute;
+    }
 }
 
 .comment-input{

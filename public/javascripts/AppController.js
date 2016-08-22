@@ -103,12 +103,31 @@ angular.module('App').controller('AppController', ['$scope', '$mdDialog', '$http
                 var $dialog = $('.custom-dialog');
                 var $container = $('.md-dialog-container');
                 var $img = $('.img-dialog');
-                var parentWidth = $img.parent().width();
-                var imgWidth = $img.width();
-                $img.css('margin-left', ((parentWidth-imgWidth) / 2) + 15 + "px");
+                var windowHeight = $(window).height();
+                var windowWidth = $(window).width();
+                if ($(window).width() < 768) {
+                    $img.parent().css('display', "none");
+                    $img.parent().next().css("width", "100%");
+                }
                 $container.css('display', 'block');
                 $container.hide().fadeIn(200);
                 $dialog.hide().fadeIn(200);
+                var width = $img.width();
+                var height = $img.height();
+                if ($img.width() > $img.height()) {
+                    $img.css("width",(windowWidth * 0.7) + "px");
+                }else {
+                    var ratio = windowHeight * 0.7 / height;
+                    $img.css("height", (windowHeight * 0.7) + "px");
+                    var newWidth = width * ratio;
+                    $img.css("width", newWidth + "px");
+                }
+                var dialogWidth = $('md-dialog').width();
+                var dialogHeight = $('md-dialog').height();
+                var cssTop = ($(window).height() - dialogHeight) / 4;
+                $dialog.css("margin-top", cssTop + "px");
+                var cssLeft = $(window).width() / 2 - dialogWidth / 2;
+                $dialog.css('left', cssLeft + "px");
             }
 
             $mdDialog.show({
