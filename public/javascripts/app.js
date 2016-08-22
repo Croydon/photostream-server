@@ -1,3 +1,11 @@
+window.onload = function(){
+    var height = $(window).height() - $('md-toolbar').height();
+    console.log(height);
+    setTimeout(function() {
+        $('.photo-container').height(height);
+    }, 500);
+};
+
 function guid() {
     function s4() {
         return Math.floor((1 + Math.random()) * 0x10000)
@@ -44,8 +52,6 @@ var app = angular.module('App', ['ngMaterial','ngAnimate','btford.socket-io','ui
             .primaryPalette('teal')
             .accentPalette('orange');
 });
-
-$('.photo-container').height($(window).height() - $('md-toolbar').height());
 
 app.factory('socketClient', ['socketFactory','$http','TOKEN',function(socketFactory,$http,TOKEN) {
     var url = 'http://' + window.location.hostname + ':' + window.location.port;
