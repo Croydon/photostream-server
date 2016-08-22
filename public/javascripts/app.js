@@ -45,6 +45,8 @@ var app = angular.module('App', ['ngMaterial','ngAnimate','btford.socket-io','ui
             .accentPalette('orange');
 });
 
+$('.photo-container').height($(window).height() - $('md-toolbar').height());
+
 app.factory('socketClient', ['socketFactory','$http','TOKEN',function(socketFactory,$http,TOKEN) {
     var url = 'http://' + window.location.hostname + ':' + window.location.port;
     var myIoSocket = io.connect(url,{ query: "token=" + TOKEN });
