@@ -14,11 +14,15 @@
     "ejs": "~2.3.3",
     "etag": "^1.7.0",
     "express": "~4.13.1",
+    "ipc-messenger": "^1.0.0",
     "memory-cache": "^0.1.4",
     "morgan": "~1.6.1",
     "mysql": "^2.10.2",
     "node-uuid": "^1.4.7",
+    "redis": "^2.6.2",
     "serve-favicon": "~2.3.0",
-    "socket.io": "^1.4.5"
+    "socket.io": "^1.4.5",
+    "socket.io-redis": "^1.0.0",
+    "sticky-session": "^1.1.2"
   }
 }

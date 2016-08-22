@@ -222,28 +222,38 @@ md-card>a>.md-card-image {
 }
 
 md-card {
-    width: 300px;
-    height: 500px;
+    max-width: 300px;
+    width: 100%;
+    height: auto;
+    max-height: 500px;
 }
 
 md-backdrop.md-opaque.md-default-theme,
 .md-dialog-container {
     position:fixed;
+    height:auto;
+    overflow: hidden;
+}
+
+md-dialog md-dialog-content {
+    overflow: hidden;
 }
 
 md-dialog {
+    overflow: hidden;
     width: auto;
     height:auto;
-    max-height:none;
-    max-width: none;
+    /*max-height:500px;*/
     position:fixed;
+    max-width: none;
+    max-height: none;
 }
 
 .custom-dialog {
     padding-top: 40px;
-    margin-top: 40px;
+    margin-top: 60px;
     width: 80%;
-    height:80%;
+    height: 80%;
     position: fixed;
     left: 10%;
 }
@@ -253,8 +263,12 @@ html, body {
 }
 
 .img-dialog {
-    position: fixed;
-    border: 10px solid rgb(0,150,136);
+    border: 2px solid rgb(0,150,136);
+    width:auto;
+    height:auto;
+    max-height:400px;
+    max-width:300px;
+    text-align: center;
 }
 
 .text-primary {

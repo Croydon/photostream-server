@@ -1,5 +1,7 @@
 angular.module('App').service('photoStreamService', ['$http','socketClient',function($http, socket) {
 
+    var token = localStorage.getItem("token");
+
     var self = this;
 
     self.data = {
@@ -35,10 +37,11 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
     }
 
     self.loadComments = function(photoId, callback){
-        $http.get('/photostream/api/image/' + photoId + '/comments', {headers: { 'installation_id': 'test'} }
+        $http.get('/photostream/api/image/' + photoId + '/comments', {headers: { 'installation_id': token} }
         ).then(function (response) {
             for (var i = 0; i < response.data.comments.length; i++){
-                response.data.comments[i].message = response.data.comments[i].message.replace(/\n/g, '<br/>');
+                if (response.data.comments[i].message != null)
+                    response.data.comments[i].message = response.data.comments[i].message.replace(/\n/g, '<br/>');
             }
             self.data.currentPhoto = getPhoto(response.data.photo_id);
             self.data.comments = response.data.comments;
@@ -55,7 +58,7 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
             method: 'DELETE',
             url: '/photostream/api/comment/' + commentId,
             headers: {
-                'installation_id': 'test'
+                'installation_id': token
             }
         }).then(function (response) {
             notifyOnCommentDeleted(commentId);
@@ -72,7 +75,7 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
             method: 'DELETE',
             url: '/photostream/api/image/' + photoId,
             headers: {
-                'installation_id': 'test'
+                'installation_id': token
             }
         }).then(function (response) {
             var photos = self.data.photos;
@@ -95,13 +98,12 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
             method: 'POST',
             url: '/photostream/api/image/' + photoId + '/comment',
             headers: {
-                'installation_id': 'test',
+                'installation_id': token,
                 'Content-Type': 'application/json'
             },
             data : { message: comment}
         }).then(function (response) {
             callback(true);
-            console.log(response.data);
             notifyNewComment(response.data);
         }, function (error) {
             callback(false);
@@ -110,10 +112,11 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
     };
 
     self.loadPhotos = function(callback){
-        $http.get('/photostream/api/stream', {headers: { 'installation_id': 'test'} }
+        $http.get('/photostream/api/stream', {headers: { 'installation_id': token} }
         ).then(function (response) {
             for (var i = 0; i < response.data.photos.length; i++){
-                response.data.photos[i].comment = response.data.photos[i].comment.replace(/\n/g, '<br/>');
+                if (response.data.photos[i].comment != null)
+                    response.data.photos[i].comment = response.data.photos[i].comment.replace(/\n/g, '<br/>');
                 response.data.photos[i].image = 'http://' + window.location.hostname + ':' + window.location.port + "/photostream/api/image/" + response.data.photos[i].photo_id + "/content";
             }
             self.data.photos = response.data.photos;
@@ -126,7 +129,7 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
     };
 
     self.loadMorePhotos = function(callback){
-        $http.get('/photostream/api/stream/more', {headers: { 'installation_id': 'test'} }
+        $http.get('/photostream/api/stream/more', {headers: { 'installation_id': token} }
         ).then(function (response) {
             for (var i = 0; i < response.data.photos.length; i++){
                 response.data.photos[i].image = 'http://' + window.location.hostname + ':' + window.location.port + "/photostream/api/image/" + response.data.photos[i].photo_id + "/content";
@@ -160,7 +163,9 @@ angular.module('App').service('photoStreamService', ['$http','socketClient',func
     });
 
     socket.on(events.NEW_PHOTO, function(item){
-        item.comment = item.comment.replace(/\n/g, '<br/>');
+        if (item.comment != null) {
+            item.comment = item.comment.replace(/\n/g, '<br/>');
+        }
         item.image = 'http://' + window.location.hostname + ':' + window.location.port + "/photostream/api/image/" + item.photo_id + "/content";
         self.data.photos.unshift(item);
     });

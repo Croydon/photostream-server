@@ -26,17 +26,18 @@ module.exports = function(app, io) {
 
   const API_URL = "/photostream/api/";
 
-  var cache = require('memory-cache');
   var etag = require('etag');
-  const CACHE_TIMEOUT = 3600 * 1000;
   const STREAM_PREFIX = "stream_";
   const MAX_PHOTO_ID_PREFIX = "max_photo_id_";
-  const MAX_PHOTO_ID = 100000;
+  const MAX_PHOTO_ID = 1000000;
   const SEARCH_PREFIX = "search_";
   const MAX_COMMENT_LENGTH = 150;
+  const DEFAULT_ITEMS_PER_PAGE = 5;
+
+  var cluster = require('cluster');
   var express = require('express');
   var db = require('../db');
-
+  var redis = require('redis'), client = redis.createClient({db: 1});
   /**
    * renders the photostream homepage
    */
@@ -53,12 +54,21 @@ module.exports = function(app, io) {
 
   app.get(API_URL + 'stream', function (req, res) {
     var installationId = req.header('installation_id');
-    doGetPhotos(installationId, 1, MAX_PHOTO_ID, req, res);
+    var photos_per_page = req.query['page_size'];
+    var initial = req.query['initial_load'] == 1;
+    if (photos_per_page === undefined || photos_per_page == null)
+      photos_per_page = DEFAULT_ITEMS_PER_PAGE;
+
+    doGetPhotos(installationId, 1, MAX_PHOTO_ID, photos_per_page, initial, req, res);
   });
 
   app.get(API_URL + 'stream/more', function(req, res){
     var installationId = req.header('installation_id');
-    doGetPhotos(installationId, undefined, undefined, req, res);
+    var photos_per_page = req.query['page_size'];
+    if (photos_per_page === undefined || photos_per_page == null)
+      photos_per_page = DEFAULT_ITEMS_PER_PAGE;
+
+    doGetPhotos(installationId, undefined, undefined, photos_per_page, false, req, res);
   });
 
   app.get(API_URL + 'search', function(req, res){
@@ -70,40 +80,43 @@ module.exports = function(app, io) {
       return;
     }
 
-    doSearch(installationId, query, 1, MAX_PHOTO_ID, res);
+    var photos_per_page = req.query['page_size'];
+    if (photos_per_page === undefined || photos_per_page == null)
+      photos_per_page = DEFAULT_ITEMS_PER_PAGE;
+
+    doSearch(installationId, query, 1, MAX_PHOTO_ID, photos_per_page, res);
 
   });
 
   app.get(API_URL + 'search/more', function(req, res){
     var installationId = req.header('installation_id');
-    doSearch(installationId, undefined, undefined, undefined, res);
+    var photos_per_page = req.query['page_size'];
+    if (photos_per_page === undefined || photos_per_page == null)
+      photos_per_page = DEFAULT_ITEMS_PER_PAGE;
+
+    doSearch(installationId, undefined, undefined, undefined, photos_per_page, res);
   });
 
+
   app.post(API_URL + 'image', function (req, res) {
+
     var installationId = req.header('installation_id');
+
     var obj = req.body;
     db.openConnection(function (err, connection) {
       if (err) throw err;
       db.storePhoto(connection, installationId, obj, function (photoId) {
         if (photoId !== undefined && photoId > 0){
-          db.openConnection(function(err, connection){
-            if (err){
-              throw err;
-            }else{
-              db.getPhoto(connection, photoId, function(response){
-                var photo = response !== undefined && response.length > 0 ? response[0] : undefined;
-                queryETagForFirstPageOfStream(installationId, function(hash){
-                  res.setHeader('ETag', hash);
-                  photo.deleteable = true;
-                  res.json(photo);
-                  delete photo.deleteable;
-                  delete photo.etag; // ??
-                  io.webSocket.emit(installationId, 'new_photo', photo);
-                });
-              });
-            }
+          db.getPhoto(connection, photoId, function(response){
+            connection.release();
+            var photo = response !== undefined && response.length > 0 ? response[0] : undefined;
+            photo.deleteable = true;
+            res.json(photo);
+            delete photo.deleteable;
+            io.webSocket.emit(installationId, 'new_photo', photo);
           });
         }else{
+          connection.release();
           res.status(500).end();
         }
       });
@@ -140,9 +153,10 @@ module.exports = function(app, io) {
             io.webSocket.emit(installationId, 'new_comment', comment);
             db.getCommentCount(connection, photoId, function(commentCount){
               connection.release();
-              io.webSocket.emit(undefined, 'new_comment_count', {photo_id : photoId, comment_count : commentCount});
+              io.webSocket.sockets.emit('new_comment_count', {photo_id : photoId, comment_count : commentCount});
             });
           }else{
+            connection.release();
             res.status(500).json({ response_code: 500, message: 'internal server error'});
           }
         });
@@ -169,9 +183,10 @@ module.exports = function(app, io) {
                 io.webSocket.emit(installationId, "comment_deleted", commentId);
                 db.getCommentCount(connection, photoId, function(commentCount){
                   connection.release();
-                  io.webSocket.emit(undefined, 'new_comment_count', {photo_id : photoId, comment_count : commentCount});
+                  io.webSocket.sockets.emit('new_comment_count', {photo_id : photoId, comment_count : commentCount});
                 });
               }else{
+                connection.release();
                 res.status(404).json( { response_code: 404, message: 'comment not found', comment_id: commentId});
               }
             });
@@ -193,9 +208,10 @@ module.exports = function(app, io) {
         throw err;
       } else {
         db.deletePhoto(connection, photoId, installationId, function (affectedRows) {
+          connection.release();
 
           var responseStatus = affectedRows > 0 ? 200 : 404;
-          var responseJson = { response_code: responseStatus, photo_id: photoId}
+          var responseJson = { response_code: responseStatus, photo_id: photoId};
 
           if (affectedRows <= 0){
             responseJson.message = 'photo not found';
@@ -228,6 +244,7 @@ module.exports = function(app, io) {
         throw err;
       } else {
         db.getComments(connection, photoId, installation_id, invalidPhotoIdCallback, function (comments) {
+          connection.release();
           var response = {photo_id: photoId, comments: comments};
           var hash = etag(JSON.stringify(response));
           if (ifModifiedSince === undefined || ifModifiedSince === null || ifModifiedSince != hash) {
@@ -253,10 +270,12 @@ module.exports = function(app, io) {
         db.photoExists(connection, photoId, function(exists){
           if (exists){
             db.likePhoto(connection, installationId, photoId, function () {
+              connection.release();
               var like = {photo_id: photoId, favorite: true};
               res.json(like);
             });
           }else{
+            connection.release();
             res.status(404).json( { response_code: 404, message: 'invalid photo id' } );
           }
         });
@@ -279,10 +298,12 @@ module.exports = function(app, io) {
         db.photoExists(connection, photoId, function(exists) {
           if (exists) {
             db.dislikePhoto(connection, installationId, photoId, function () {
+              connection.release();
               var dislike = {photo_id: photoId, favorite: false};
               res.json(dislike);
             });
           }else{
+            connection.release();
             res.status(404).json( { response_code: 404, message: 'invalid photo id' } );
           }
         });
@@ -303,11 +324,17 @@ module.exports = function(app, io) {
         db.photoExists(connection, photoId, function(exists){
           if (exists){
             db.getPhotoContent(connection, photoId, function(content){
+              connection.release();
               res.header('Content-Type', 'image/png');
-              var buff = new Buffer(content, 'base64');
-              res.send(buff);
+              try{
+                var buff = new Buffer(content, 'base64');
+                res.send(buff);
+              }catch(err){
+                res.status(500).json( { response_code: 500, message: 'could not encode image' } );
+              }
             });
           }else{
+            connection.release();
             res.status(404).json( { response_code: 404, message: 'invalid photo id' } );
           }
         });
@@ -325,13 +352,13 @@ module.exports = function(app, io) {
     }
   }
 
-  function queryETagForFirstPageOfStream(installationId, callback){
+  function queryETagForFirstPageOfStream(installationId, photos_per_page, callback){
 
     db.openConnection(function (err, connection) {
       if (err)
         throw err;
       else{
-        db.getPhotos(connection, installationId, 1000000, function (response) {
+        db.getPhotos(connection, installationId, MAX_PHOTO_ID, photos_per_page, function (response) {
           //var hasNextPage = response !== undefined && response.length > 0;
           for (var i = 0; i < response.length; i++){
             delete response[i].favorite;
@@ -345,124 +372,152 @@ module.exports = function(app, io) {
 
   }
 
-  function doGetPhotos(installationId, page, maxPhotoId, req, res){
-
-    if (page !== undefined && page == 1){
-      cache.put(STREAM_PREFIX + installationId, 1, CACHE_TIMEOUT); // Time in ms
-    }else{
-      page = cache.get(STREAM_PREFIX + installationId);
-      maxPhotoId = cache.get(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId);
-      if (page == null){
-        res.status(401).json({ response_code: 401, message: 'please use /stream endpoint first'});
-        return;
-      }
-    }
-
-    db.openConnection(function (err, connection) {
-      if (err)
-        throw err;
-      else{
-        db.getPhotos(connection, installationId, maxPhotoId, function (response) {
-          if (response.length > 0) {
-            db.openConnection(function (err, connection) {
-              if (err)
-                throw err;
-              else {
-                var nextMaxPhotoId = response[response.length-1].photo_id;
-                cache.put(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId, CACHE_TIMEOUT);
-                db.getPhotos(connection, installationId, nextMaxPhotoId, function (response_next_page) {
-                  var hasNextPage = response_next_page !== undefined && response_next_page.length > 0;
-                  var jsonResponse = {photos: response, page: page, has_next_page: hasNextPage};
-                  updateGetPhotoCache(req, res, page, installationId, jsonResponse);
-                });
+  function doGetPhotos2(installationId, maxPhotoId, photos_per_page, page, req, res, initial_load){
+      db.openConnection(function (err, connection) {
+        if (err)
+          throw err;
+        else{
+          db.getPhotos(connection, installationId, maxPhotoId, photos_per_page, function (response) {
+            var nextMaxPhotoId;
+            if (response.length > 0) {
+              nextMaxPhotoId = response[response.length-1].photo_id;
+              db.getPhotos(connection, installationId, nextMaxPhotoId, photos_per_page, function (response_next_page) {
+                connection.release();
+                var hasNextPage = response_next_page !== undefined && response_next_page.length > 0;
+                var jsonResponse = {photos: response, page: page, has_next_page: hasNextPage};
+                updateGetPhotoCache(req, res, page, installationId, initial_load, nextMaxPhotoId, jsonResponse);
+              });
+            }else{
+              connection.release();
+              nextMaxPhotoId = (page == 1) ? MAX_PHOTO_ID : 0;
+              var jsonResponse = {photos: response, page: page, has_next_page: false};
+                          updateGetPhotoCache(req, res, page, installationId, initial_load, nextMaxPhotoId, jsonResponse);
+                      }
+                  });
               }
-            });
-          }else{
-            if (page == 1)
-              cache.put(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, MAX_PHOTO_ID, CACHE_TIMEOUT);
-            var jsonResponse = {photos: response, page: page, has_next_page: false};
-            updateGetPhotoCache(req, res, page, installationId, jsonResponse);
-          }
-        });
+          });
       }
-    });
+
+  function doGetPhotos(installationId, page, maxPhotoId, photos_per_page, initial_load, req, res){
+
+    //console.log("fetching photo from worker " + cluster.worker.id);
+
+    if (page === undefined){
+      client.get(STREAM_PREFIX + installationId, function(err, page){
+        client.get(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, function(err, maxPhotoId){
+          if (page == null){
+            res.status(401).json({ response_code: 401, message: 'please use /stream endpoint first'});
+            return;
+          }
+          doGetPhotos2(installationId, maxPhotoId, photos_per_page, page, req, res, initial_load);
+        });
+      });
+    }else{
+      doGetPhotos2(installationId, maxPhotoId, photos_per_page, page, req, res, initial_load);
+    }
 
   }
 
-  function updateGetPhotoCache(req, res, page, installationId, jsonResponse){
-    cache.put(STREAM_PREFIX + installationId, cache.get(STREAM_PREFIX + installationId) + 1, CACHE_TIMEOUT);
-    if (page == 1){
+  function updateGetPhotoCache(req, res, page, installationId, initial_load, nextMaxPhotoId, jsonResponse){
       var ifModifiedSince = req.header('if-modified-since');
       var response = JSON.parse(JSON.stringify(jsonResponse.photos));
       for (var i = 0; i < response.length; i++){
         delete response[i].favorite;
-        delete response[i].comment_count;
       }
       var hash = etag(JSON.stringify(response));
       if (ifModifiedSince === undefined || ifModifiedSince === null || ifModifiedSince != hash) {
-        res.setHeader('ETag', hash);
-        res.json(jsonResponse)
+        if (page == 1) {
+          client.set(STREAM_PREFIX + installationId, 2); // Time in ms
+          client.set(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId);
+          res.setHeader('ETag', hash);
+          res.json(jsonResponse)
+        }else{
+          client.get(STREAM_PREFIX + installationId, function(err, value){
+            var newPage = parseInt(value) + 1;
+            client.set(STREAM_PREFIX + installationId, newPage);
+            client.set(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId);
+            res.setHeader('ETag', hash);
+            res.json(jsonResponse)
+          });
+        }
       }else{
-        res.setHeader('photo-page', page);
-        res.status(304).end();
+        client.get(STREAM_PREFIX + installationId, function(err, value){
+          if (page == 1){
+            if (value == undefined || value == null || initial_load) {
+              client.set(STREAM_PREFIX + installationId, 2);
+              client.set(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId);
+            }
+          }else{
+            var newPage = parseInt(value) + 1;
+            client.set(STREAM_PREFIX + installationId, newPage);
+            client.set(STREAM_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId);
+          }
+          res.setHeader('photo-page', page);
+          res.status(304).end();
+        });
       }
-    }else{
-      res.json(jsonResponse);
-    }
   }
 
-  function doSearch(installationId, query, page, maxPhotoId, res){
-
-    if (query === undefined){
-      var obj = cache.get(SEARCH_PREFIX + installationId);
-      if (obj == null){
-        res.status(401).json({ response_code: 401, message: 'please use /search endpoint first'});
-        return;
-      }
-      query = obj.query;
-      page = obj.page;
-      maxPhotoId = cache.get(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId);
-    }else{
-      var obj = {};
-      obj.query = query;
-      obj.page = page;
-      cache.put(SEARCH_PREFIX + installationId, obj, CACHE_TIMEOUT);
-    }
-
+  function doSearch2(installationId, query, maxPhotoId, photos_per_page, res, page){
     db.openConnection(function(err, connection){
       if (err)
         throw err;
       else{
-        db.search(connection, installationId, query, maxPhotoId, function(response){
+        db.search(connection, installationId, query, maxPhotoId, photos_per_page, function(response){
           if (response.length > 0) {
             var nextMaxPhotoId = response[response.length-1].photo_id;
-            cache.put(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId, CACHE_TIMEOUT);
-            db.openConnection(function (err, connection) {
-              db.search(connection, installationId, query, nextMaxPhotoId, function (response_next_page) {
-                var hasNextPage = response_next_page !== undefined && response_next_page.length > 0;
-                updateSearchCache(installationId, function(){
-                  res.json({photos: response, page: page, has_next_page: hasNextPage});
-                });
+            client.set(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, nextMaxPhotoId);
+            db.search(connection, installationId, query, nextMaxPhotoId, photos_per_page, function (response_next_page) {
+              connection.release();
+              var hasNextPage = response_next_page !== undefined && response_next_page.length > 0;
+              updateSearchCache(installationId, function(){
+                res.json({photos: response, page: page, has_next_page: hasNextPage});
               });
             });
           }else{
-            if (page == 1)
-              cache.put(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, MAX_PHOTO_ID, CACHE_TIMEOUT);
+            connection.release();
+            if (page == 1) {
+              client.set(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, MAX_PHOTO_ID);
+            }
             updateSearchCache(installationId, function(){
-              res.json({photos: response, page: page, has_next_page: false});
+                res.json({photos: response, page: page, has_next_page: false});
             });
           }
         });
       }
     });
+  }
+
+  function doSearch(installationId, query, page, maxPhotoId, photos_per_page, res){
+
+    if (query === undefined){
+      client.get(SEARCH_PREFIX + installationId, function(err, obj){
+        if (obj == null){
+          res.status(401).json({ response_code: 401, message: 'please use /search endpoint first'});
+          return;
+        }
+        query = obj.query;
+        page = obj.page;
+        client.get(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, function(err, maxPhotoId){
+          doSearch2(installationId, query, maxPhotoId, photos_per_page, res, page);
+        });
+      });
+    }else{
+      var obj = {};
+      obj.query = query;
+      obj.page = page;
+      client.set(SEARCH_PREFIX + installationId, obj);
+      doSearch2(installationId, query, maxPhotoId, photos_per_page, res, page);
+    }
 
   }
 
   function updateSearchCache(installationId, callback){
-    var obj = cache.get(SEARCH_PREFIX + installationId);
-    obj.page = parseInt(obj.page) + 1;
-    cache.put(SEARCH_PREFIX + installationId, obj, CACHE_TIMEOUT);
-    callback();
+    client.get(SEARCH_PREFIX + installationId, function(err, obj){
+      obj.page = parseInt(obj.page) + 1;
+      client.set(SEARCH_PREFIX + installationId, obj);
+      callback();
+    });
   }
 
 };

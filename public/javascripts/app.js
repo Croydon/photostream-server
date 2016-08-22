@@ -1,12 +1,34 @@
+function guid() {
+    function s4() {
+        return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+    }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+        s4() + '-' + s4() + s4() + s4();
+}
+
 deferredBootstrapper.bootstrap({
     element: document.body,
     module: 'App',
     resolve: {
         TOKEN: ['$http', '$q', function ($http, $q) {
 
+            var token = "test";
+
+            if (typeof(Storage) !== "undefined") {
+                token = localStorage.getItem("token");
+                if (token === undefined || token == null){
+                    token = guid();
+                    localStorage.setItem("token", token);
+                }
+            }
+
+            console.log(token);
+
             var deferred = $q.defer();
 
-            deferred.resolve('test');
+            deferred.resolve(token);
 
             return deferred.promise;
         }]

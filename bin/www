@@ -34,111 +34,144 @@ var http = require('http');
 var io = require('socket.io');
 var events = require('../events');
 var routes = require('../routes/index');
+var net = require('net');
+var cluster = require('cluster');
+var io_redis = require('socket.io-redis');
+var sticky = require('sticky-session');
+var port = normalizePort(process.env.PORT || require('../config').port);
 
 var app = appBuilder(routes, io);
 
-var port = normalizePort(process.env.PORT || require('../config').port);
-app.set('port', port);
+//app.set('port', port);
 
 /**
  * Create HTTP server.
  */
+http.globalAgent.maxSockets = Infinity;
 
 var server = http.createServer(app);
 
-io.webSocket = io.listen(server, {});
-var webSocket = io.webSocket;
-/**
- * Listen on provided port, on all network interfaces.
- */
+if (sticky.listen(server, port)) {
+    io.webSocket = io.listen(server, {pingInterval: 45000, pingTimeout: 120000});
 
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+    var webSocket = io.webSocket;
 
-/**
- * Normalize a port into a number, string, or false.
- */
 
-function normalizePort(val) {
-  var port = parseInt(val, 10);
+// Tell Socket.IO to use the redis adapter. By default, the redis
+// server is assumed to be on localhost:6379. You don't have to
+// specify them explicitly unless you want to change them.
+    webSocket.adapter(io_redis({host: 'localhost', port: 6379}));
 
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
+    server.on('error', onError);
+    server.on('listening', onListening);
 
-  if (port >= 0) {
-    // port number
-    return port;
-  }
+    /**
+     * Normalize a port into a number, string, or false.
+     */
 
-  return false;
-}
+    function normalizePort(val) {
+        var port = parseInt(val, 10);
 
-/**
- * Event listener for HTTP server "error" event.
- */
+        if (isNaN(port)) {
+            // named pipe
+            return val;
+        }
 
-function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
+        if (port >= 0) {
+            // port number
+            return port;
+        }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
-}
-
-/**
- * Event listener for HTTP server "listening" event.
- */
-
-function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  debug('Listening on ' + bind);
-}
-
-webSocket.connectedSockets = [];
-
-webSocket.on(events.ON_CONNECTION, function (socket) {
-
-  var token = socket.handshake.query.token;
-  socket.uuid = token;
-
-  webSocket.connectedSockets.push(socket);
-
-  socket.on(events.ON_DISCONNECT, function () {
-    var index = webSocket.connectedSockets.indexOf(socket);
-    if (index > -1) {
-      webSocket.connectedSockets.splice(index, 1);
+        return false;
     }
-  });
 
-});
+    /**
+     * Event listener for HTTP server "error" event.
+     */
 
-webSocket.emit = function(token, instruction, data){
-  for (var p = 0; p < webSocket.connectedSockets.length; p++){
-    var currentSocket = webSocket.connectedSockets[p];
-    if (currentSocket.uuid != token){
-      currentSocket.emit(instruction,data);
+    function onError(error) {
+        if (error.syscall !== 'listen') {
+            throw error;
+        }
+
+        var bind = typeof port === 'string'
+            ? 'Pipe ' + port
+            : 'Port ' + port;
+
+        // handle specific listen errors with friendly messages
+        switch (error.code) {
+            case 'EACCES':
+                console.error(bind + ' requires elevated privileges');
+                process.exit(1);
+                break;
+            case 'EADDRINUSE':
+                console.error(bind + ' is already in use');
+                process.exit(1);
+                break;
+            default:
+                throw error;
+        }
     }
-  }
-};
+
+    /**
+     * Event listener for HTTP server "listening" event.
+     */
+
+    function onListening() {
+        var addr = server.address();
+        var bind = typeof addr === 'string'
+            ? 'pipe ' + addr
+            : 'port ' + addr.port;
+        debug('Listening on ' + bind);
+    }
+
+    webSocket.connectedSockets = {};
+
+    function remove(socket, disconnect, callback) {
+        if (socket.uuid in webSocket.connectedSockets) {
+            console.log("removing socket")
+            var s = webSocket.connectedSockets[socket.uuid];
+            //console.log("with uuid: " + s.uuid);
+            if (disconnect)
+                s.disconnect(true);
+            delete webSocket.connectedSockets[socket.uuid];
+        }
+        if (callback !== undefined)
+            callback();
+    }
+
+    webSocket.on(events.ON_CONNECTION, function (socket) {
+
+        console.log("connected socket reached worker " + cluster.worker.id);
+
+        var token = socket.handshake.query.token;
+        socket.uuid = token;
+
+        remove(socket, true, function () {
+            console.log("adding socket with uuid: " + socket.uuid);
+            webSocket.connectedSockets[socket.uuid] = socket;
+        });
+
+        socket.on(events.ON_DISCONNECT, function () {
+            remove(socket, false);
+        });
+
+    });
+
+    webSocket.emit = function (token, instruction, data) {
+        console.log(instruction);
+        console.log("try emitting from worker " + cluster.worker.id);
+        if (token in webSocket.connectedSockets) {
+            var socket = webSocket.connectedSockets[token];
+            if ('uuid' in socket) {
+                console.log("current: " + socket.uuid);
+                socket.broadcast.emit(instruction, data);
+            } else {
+                console.log("could not broadcast from worker " + cluster.worker.id + "!!");
+            }
+        } else {
+            console.log("token not defined in worker " + cluster.worker.id + "! Sending broadcast to other workers");
+        }
+    };
+
+}
