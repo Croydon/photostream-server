@@ -1,8 +1,7 @@
 window.onload = function(){
     var height = $(window).height() - $('md-toolbar').height();
-    console.log(height);
     setTimeout(function() {
-        $('.photo-container').height(height);
+        $('.photo-container').css("min-height", height);
     }, 500);
 };
 
