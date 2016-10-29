@@ -200,6 +200,21 @@ function SqlConnection() {
         });
     };
 
+    SqlConnection.prototype.loadFavoritePhotos = function(connection, installationId, callback){
+
+        var query = 'SELECT p.photo_id, p.installation_id, p.comment FROM photo p JOIN installationid_votes v ON v.photo_id = p.photo_id WHERE v.installation_id = ? AND v.favorite = 1 ORDER BY p.photo_id DESC;';
+
+        connection.query(query, [installationId], function(err, response){
+            if (err) {
+                connection.release();
+                throw err;
+            }else{
+                processPhotoResult(connection, installationId, response, callback);
+            }
+        });
+
+    };
+
     SqlConnection.prototype.getPhoto = function(connection, photoId, callback){
         var query = 'SELECT p.photo_id, p.installation_id, p.comment, COALESCE(v.favorite, 0) AS favorite FROM photo p lEFT JOIN installationid_votes v ON p.photo_id = v.photo_id AND p.installation_id = v.installation_id WHERE p.photo_id = ?';
         connection.query(query, [photoId], function(err,response){

@@ -62,6 +62,23 @@ module.exports = function(app, io) {
     doGetPhotos(installationId, 1, MAX_PHOTO_ID, photos_per_page, initial, req, res);
   });
 
+  app.get(API_URL + 'favorites', function (req, res) {
+    var installationId = req.header('installation_id');
+
+    db.openConnection(function (err, connection) {
+      if (err)
+        throw err;
+      else {
+        db.loadFavoritePhotos(connection, installationId, function(result){
+          connection.release();
+          var jsonResponse = {photos: result, page: 1, has_next_page: false};
+          res.json(jsonResponse);
+        });
+      }
+    });
+
+  });
+
   app.get(API_URL + 'stream/more', function(req, res){
     var installationId = req.header('installation_id');
     var photos_per_page = req.query['page_size'];
