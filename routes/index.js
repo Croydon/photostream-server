@@ -490,12 +490,15 @@ module.exports = function(app, io) {
 
     if (query === undefined){
       client.get(SEARCH_PREFIX + installationId, function(err, obj){
+        obj = JSON.parse(obj);
         if (obj == null){
           res.status(401).json({ response_code: 401, message: 'please use /search endpoint first'});
           return;
         }
         query = obj.query;
         page = obj.page;
+        console.log("query: " + query);
+        console.log("page: "  + page);
         client.get(SEARCH_PREFIX + MAX_PHOTO_ID_PREFIX + installationId, function(err, maxPhotoId){
           doSearch2(installationId, query, maxPhotoId, photos_per_page, res, page);
         });
@@ -504,7 +507,7 @@ module.exports = function(app, io) {
       var obj = {};
       obj.query = query;
       obj.page = page;
-      client.set(SEARCH_PREFIX + installationId, obj);
+      client.set(SEARCH_PREFIX + installationId, JSON.stringify(obj));
       doSearch2(installationId, query, maxPhotoId, photos_per_page, res, page);
     }
 
@@ -512,8 +515,9 @@ module.exports = function(app, io) {
 
   function updateSearchCache(installationId, callback){
     client.get(SEARCH_PREFIX + installationId, function(err, obj){
+      obj = JSON.parse(obj);
       obj.page = parseInt(obj.page) + 1;
-      client.set(SEARCH_PREFIX + installationId, obj);
+      client.set(SEARCH_PREFIX + installationId, JSON.stringify(obj));
       callback();
     });
   }
